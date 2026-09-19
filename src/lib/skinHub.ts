@@ -187,3 +187,28 @@ export function buildSkinHubFrameUrl(
 
   return `${FRAME_BASE}?${params.toString()}`
 }
+
+/** Build a transient OpenedSkin so catalog / case-contents items can open InspectModal. */
+export function previewOpenedFromItem(
+  item: import('../types').SkinItem,
+  crate: Pick<import('../types').Crate, 'id' | 'name' | 'type'>,
+  opts?: { isRareSpecial?: boolean },
+): import('../types').OpenedSkin {
+  const isCaseLike = crate.type === 'Case' || crate.type === 'Souvenir'
+  return {
+    uid: `preview-${item.id}-${Date.now()}`,
+    caseId: crate.id,
+    caseName: crate.name,
+    crateType: crate.type,
+    item,
+    wear: isCaseLike ? 'FN' : null,
+    wearLabel: isCaseLike ? 'Factory New' : 'N/A',
+    float: isCaseLike ? 0.01 : null,
+    paintSeed: 500,
+    hasWear: isCaseLike,
+    isStatTrak: false,
+    isRareSpecial: !!opts?.isRareSpecial,
+    openedAt: Date.now(),
+    stickers: [],
+  }
+}
