@@ -8,10 +8,7 @@ export function ResultCard({ skin }: { skin: OpenedSkin }) {
       className="rounded-xl border bg-panel overflow-hidden"
       style={{ borderColor: color, boxShadow: `0 0 24px ${color}33` }}
     >
-      <div
-        className="h-1.5 w-full"
-        style={{ background: color }}
-      />
+      <div className="h-1.5 w-full" style={{ background: color }} />
       <div className="p-4 flex flex-col sm:flex-row gap-4 items-center">
         <div className="h-28 w-28 flex items-center justify-center rounded-lg bg-[#0a0d12]">
           <img
@@ -21,7 +18,10 @@ export function ResultCard({ skin }: { skin: OpenedSkin }) {
           />
         </div>
         <div className="flex-1 text-center sm:text-left space-y-1">
-          <div className="text-xs font-semibold uppercase tracking-wide" style={{ color }}>
+          <div
+            className="text-xs font-semibold uppercase tracking-wide"
+            style={{ color }}
+          >
             {skin.isRareSpecial ? 'Rare Special' : skin.item.rarity.name}
             {skin.isStatTrak && (
               <span className="ml-2 text-orange-400 normal-case">StatTrak™</span>
@@ -29,8 +29,16 @@ export function ResultCard({ skin }: { skin: OpenedSkin }) {
           </div>
           <h3 className="text-lg font-bold text-text">{displayName(skin)}</h3>
           <p className="text-sm text-muted">
-            {skin.wearLabel} ({skin.wear}) · Float{' '}
-            <span className="text-text font-mono">{skin.float.toFixed(8)}</span>
+            {skin.hasWear && skin.float != null && skin.wear ? (
+              <>
+                {skin.wearLabel} ({skin.wear}) · Float{' '}
+                <span className="text-text font-mono">
+                  {skin.float.toFixed(8)}
+                </span>
+              </>
+            ) : (
+              <>Usure / float : N/A</>
+            )}
           </p>
           <p className="text-[11px] text-muted">Depuis {skin.caseName}</p>
         </div>

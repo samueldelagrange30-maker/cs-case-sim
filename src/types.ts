@@ -13,10 +13,12 @@ export interface SkinItem {
   phase: string | null
 }
 
-export interface WeaponCase {
+/** Full crate (loaded on case detail). */
+export interface Crate {
   id: string
   name: string
   description: string
+  type: CrateType
   image: string
   market_hash_name: string
   first_sale_date: string
@@ -24,19 +26,54 @@ export interface WeaponCase {
   contains_rare: SkinItem[]
 }
 
+/** Lightweight index entry for the home grid. */
+export interface CrateIndexEntry {
+  id: string
+  name: string
+  type: CrateType
+  image: string
+  market_hash_name: string
+  first_sale_date: string
+  contains_count: number
+  contains_rare_count: number
+}
+
+export type CrateType =
+  | 'Case'
+  | 'Sticker Capsule'
+  | 'Autograph Capsule'
+  | 'Souvenir'
+  | 'Music Kit Box'
+  | 'Patch Capsule'
+  | 'Pins'
+  | 'Graffiti'
+  | 'Souvenir Highlight'
+
+/** @deprecated Use Crate — kept as alias for compatibility. */
+export type WeaponCase = Crate
+
 export type WearKey = 'FN' | 'MW' | 'FT' | 'WW' | 'BS'
 
 export interface OpenedSkin {
   uid: string
   caseId: string
   caseName: string
+  crateType: CrateType
   item: SkinItem
-  wear: WearKey
+  wear: WearKey | null
   wearLabel: string
-  float: number
+  float: number | null
+  hasWear: boolean
   isStatTrak: boolean
   isRareSpecial: boolean
   openedAt: number
 }
 
-export type RarityTier = 'milspec' | 'restricted' | 'classified' | 'covert' | 'rare'
+export type RarityTier =
+  | 'consumer'
+  | 'industrial'
+  | 'milspec'
+  | 'restricted'
+  | 'classified'
+  | 'covert'
+  | 'rare'

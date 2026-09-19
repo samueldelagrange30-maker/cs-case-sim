@@ -1,29 +1,46 @@
 import { useMemo, useState } from 'react'
 import { CaseCard } from '../components/CaseCard'
-import type { WeaponCase } from '../types'
+import { TYPE_FILTERS } from '../lib/crateTypes'
+import type { CrateIndexEntry, CrateType } from '../types'
 
-export function HomePage({ cases }: { cases: WeaponCase[] }) {
+export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
   const [q, setQ] = useState('')
+  const [typeFilter, setTypeFilter] = useState<'all' | CrateType>('all')
+
+  const counts = useMemo(() => {
+    const map = new Map<'all' | CrateType, number>()
+    map.set('all', cases.length)
+    for (const f of TYPE_FILTERS) {
+      if (f.type) {
+        map.set(f.type, cases.filter((c) => c.type === f.type).length)
+      }
+    }
+    return map
+  }, [cases])
 
   const filtered = useMemo(() => {
+    let list = cases
+    if (typeFilter !== 'all') {
+      list = list.filter((c) => c.type === typeFilter)
+    }
     const s = q.trim().toLowerCase()
-    if (!s) return cases
-    return cases.filter(
+    if (!s) return list
+    return list.filter(
       (c) =>
         c.name.toLowerCase().includes(s) ||
         c.market_hash_name.toLowerCase().includes(s),
     )
-  }, [cases, q])
+  }, [cases, q, typeFilter])
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Caisses d&apos;armes
+            Caisses &amp; capsules
           </h1>
           <p className="text-muted text-sm mt-1">
-            {cases.length} caisses · ouverture simulée gratuite
+            {cases.length} caisses &amp; capsules · ouverture simulée gratuite
           </p>
         </div>
         <label className="block w-full sm:w-72">
@@ -32,14 +49,36 @@ export function HomePage({ cases }: { cases: WeaponCase[] }) {
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Rechercher une caisse…"
+            placeholder="Rechercher…"
             className="w-full rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
           />
         </label>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        {TYPE_FILTERS.map((f) => {
+          const active = typeFilter === f.key
+          const n = counts.get(f.key) ?? 0
+          return (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setTypeFilter(f.key)}
+              className={`rounded-full px-3 py-1.5 text-xs sm:text-sm font-medium border transition ${
+                active
+                  ? 'bg-accent/20 border-accent text-accent'
+                  : 'bg-panel border-border text-muted hover:text-text hover:border-accent/40'
+              }`}
+            >
+              {f.label}
+              <span className="ml-1.5 opacity-70">{n}</span>
+            </button>
+          )
+        })}
+      </div>
+
       {filtered.length === 0 ? (
-        <p className="text-center text-muted py-16">Aucune caisse trouvée.</p>
+        <p className="text-center text-muted py-16">Aucun résultat.</p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
           {filtered.map((c) => (

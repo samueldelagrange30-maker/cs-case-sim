@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { OpenedSkin, WeaponCase } from '../types'
+import type { Crate, OpenedSkin } from '../types'
 import { buildRouletteStrip, rarityColor, TIER_META } from '../lib/odds'
 
 const ITEM_W = 128
@@ -9,7 +9,7 @@ const WINNER_INDEX = 42
 const STRIP_LEN = 50
 
 interface Props {
-  caseData: WeaponCase
+  caseData: Crate
   winners: OpenedSkin[]
   onDone: () => void
 }
@@ -35,11 +35,9 @@ export function Roulette({ caseData, winners, onDone }: Props) {
     setSpinning(true)
     const viewport = viewportRef.current
     const vw = viewport?.clientWidth ?? 360
-    // Center the winner under the marker
     const target =
       WINNER_INDEX * SLOT - vw / 2 + ITEM_W / 2 + (Math.random() * 40 - 20)
 
-    // Force reflow start at 0
     setOffset(0)
     const t0 = requestAnimationFrame(() => {
       requestAnimationFrame(() => setOffset(target))
@@ -71,7 +69,9 @@ export function Roulette({ caseData, winners, onDone }: Props) {
         </span>
         {!spinning && (
           <span className="font-medium" style={{ color }}>
-            {winner.isStatTrak ? 'StatTrak™ ' : ''}
+            {winner.isStatTrak && !/stattrak/i.test(winner.item.name)
+              ? 'StatTrak™ '
+              : ''}
             {winner.item.name}
           </span>
         )}
@@ -81,7 +81,6 @@ export function Roulette({ caseData, winners, onDone }: Props) {
         ref={viewportRef}
         className="relative overflow-hidden rounded-xl border border-border bg-[#0a0d12] h-[160px]"
       >
-        {/* center marker */}
         <div className="pointer-events-none absolute inset-y-0 left-1/2 z-20 -translate-x-1/2 w-0.5 bg-accent shadow-[0_0_12px_#d4a017]" />
         <div className="pointer-events-none absolute top-0 left-1/2 z-20 -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-10 border-l-transparent border-r-transparent border-t-accent" />
         <div className="pointer-events-none absolute bottom-0 left-1/2 z-20 -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-b-10 border-l-transparent border-r-transparent border-b-accent" />

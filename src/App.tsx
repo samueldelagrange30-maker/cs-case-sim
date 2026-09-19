@@ -15,7 +15,9 @@ export default function App() {
       <Header inventoryCount={count} />
       <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6 sm:py-8">
         {loading && (
-          <p className="text-center text-muted py-20">Chargement des caisses…</p>
+          <p className="text-center text-muted py-20">
+            Chargement des caisses &amp; capsules…
+          </p>
         )}
         {error && (
           <p className="text-center text-covert py-20">
@@ -27,7 +29,7 @@ export default function App() {
             <Route path="/" element={<HomePage cases={cases} />} />
             <Route
               path="/case/:id"
-              element={<CasePage cases={cases} onOpened={addItems} />}
+              element={<CasePage onOpened={addItems} />}
             />
             <Route
               path="/inventory"
@@ -39,6 +41,7 @@ export default function App() {
       </main>
       <footer className="border-t border-border py-4 text-center text-[11px] text-muted px-4">
         Données skins : ByMykel CSGO-API · Skin Csgo — Simulateur de caisses
+        &amp; capsules
       </footer>
     </div>
   )

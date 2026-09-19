@@ -2,10 +2,14 @@ import { useCallback, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ResultCard } from '../components/ResultCard'
 import { Roulette } from '../components/Roulette'
-import { groupByTier, openMultiple, TIER_META } from '../lib/odds'
-import type { OpenedSkin, RarityTier, WeaponCase } from '../types'
+import { useCrate } from '../hooks/useCrate'
+import { typeLabel } from '../lib/crateTypes'
+import { crateHasWear, groupByTier, oddsBlurb, openMultiple, TIER_META } from '../lib/odds'
+import type { OpenedSkin, RarityTier } from '../types'
 
 const TIER_ORDER: RarityTier[] = [
+  'consumer',
+  'industrial',
   'milspec',
   'restricted',
   'classified',
@@ -14,17 +18,15 @@ const TIER_ORDER: RarityTier[] = [
 ]
 
 interface Props {
-  cases: WeaponCase[]
   onOpened: (skins: OpenedSkin[]) => void
 }
 
 type Phase = 'idle' | 'spinning' | 'results'
 
-export function CasePage({ cases, onOpened }: Props) {
+export function CasePage({ onOpened }: Props) {
   const { id } = useParams()
-  const caseData = useMemo(
-    () => cases.find((c) => c.id === id),
-    [cases, id],
+  const { crate: caseData, loading, error } = useCrate(
+    id ? decodeURIComponent(id) : undefined,
   )
 
   const [phase, setPhase] = useState<Phase>('idle')
@@ -53,16 +55,24 @@ export function CasePage({ cases, onOpened }: Props) {
     setPhase('results')
   }, [onOpened, pending])
 
-  if (!caseData || !groups) {
+  if (loading) {
+    return (
+      <p className="text-center text-muted py-20">Chargement…</p>
+    )
+  }
+
+  if (error || !caseData || !groups) {
     return (
       <div className="text-center py-20 space-y-4">
         <p className="text-muted">Caisse introuvable.</p>
         <Link to="/" className="text-accent hover:underline">
-          ← Retour aux caisses
+          ← Retour
         </Link>
       </div>
     )
   }
+
+  const showWear = crateHasWear(caseData.type)
 
   return (
     <div className="space-y-8">
@@ -71,7 +81,7 @@ export function CasePage({ cases, onOpened }: Props) {
           to="/"
           className="text-sm text-muted hover:text-accent transition"
         >
-          ← Toutes les caisses
+          ← Toutes les caisses &amp; capsules
         </Link>
       </div>
 
@@ -84,11 +94,16 @@ export function CasePage({ cases, onOpened }: Props) {
           />
         </div>
         <div className="flex-1 text-center md:text-left space-y-3">
-          <h1 className="text-2xl sm:text-3xl font-bold">{caseData.name}</h1>
-          <p className="text-sm text-muted">
-            Probabilités approx. : Mil-Spec 79,92% · Restricted 15,98% ·
-            Classified 3,2% · Covert 0,64% · Rare Special 0,26%
+          <p className="text-xs uppercase tracking-wide text-accent">
+            {typeLabel(caseData.type)}
           </p>
+          <h1 className="text-2xl sm:text-3xl font-bold">{caseData.name}</h1>
+          <p className="text-sm text-muted">{oddsBlurb(caseData)}</p>
+          {!showWear && (
+            <p className="text-xs text-muted">
+              Usure / float : N/A (pas applicable à ce type)
+            </p>
+          )}
           <div className="flex flex-wrap justify-center md:justify-start gap-2 pt-2">
             <button
               type="button"
@@ -148,7 +163,7 @@ export function CasePage({ cases, onOpened }: Props) {
 
       <section className="space-y-6">
         <h2 className="text-xl font-semibold border-b border-border pb-2">
-          Contenu de la caisse
+          Contenu
         </h2>
         {TIER_ORDER.map((tier) => {
           const items = groups[tier]

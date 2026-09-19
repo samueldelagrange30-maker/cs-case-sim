@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
-import type { WeaponCase } from '../types'
+import { typeLabel } from '../lib/crateTypes'
+import type { CrateIndexEntry } from '../types'
 
-export function CaseCard({ c }: { c: WeaponCase }) {
+export function CaseCard({ c }: { c: CrateIndexEntry }) {
   return (
     <Link
       to={`/case/${encodeURIComponent(c.id)}`}
@@ -16,11 +17,17 @@ export function CaseCard({ c }: { c: WeaponCase }) {
         />
       </div>
       <div className="px-3 py-3 border-t border-border">
+        <p className="text-[10px] uppercase tracking-wide text-accent/80 mb-0.5">
+          {typeLabel(c.type)}
+        </p>
         <h2 className="text-sm font-semibold text-text line-clamp-2 group-hover:text-accent transition-colors">
           {c.name}
         </h2>
         <p className="mt-1 text-[11px] text-muted">
-          {c.contains.length} skins · {c.contains_rare.length} rares
+          {c.contains_count} items
+          {c.contains_rare_count > 0
+            ? ` · ${c.contains_rare_count} rares`
+            : ''}
         </p>
       </div>
     </Link>

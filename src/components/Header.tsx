@@ -21,7 +21,7 @@ export function Header({ inventoryCount }: { inventoryCount: number }) {
               Skin Csgo
             </div>
             <div className="text-[11px] text-muted truncate">
-              Simulateur de caisses
+              Simulateur de caisses &amp; capsules
             </div>
           </div>
         </Link>

@@ -5,7 +5,7 @@ export function InventoryList({ items }: { items: OpenedSkin[] }) {
   if (items.length === 0) {
     return (
       <p className="text-center text-muted py-12">
-        Inventaire vide — ouvrez des caisses pour commencer.
+        Inventaire vide — ouvrez des caisses ou capsules pour commencer.
       </p>
     )
   }
@@ -18,7 +18,10 @@ export function InventoryList({ items }: { items: OpenedSkin[] }) {
           <li
             key={skin.uid}
             className="rounded-lg border bg-panel overflow-hidden"
-            style={{ borderColor: `${color}88`, boxShadow: `inset 0 -2px 0 ${color}` }}
+            style={{
+              borderColor: `${color}88`,
+              boxShadow: `inset 0 -2px 0 ${color}`,
+            }}
           >
             <div className="aspect-square flex items-center justify-center bg-[#0a0d12] p-2">
               <img
@@ -37,7 +40,9 @@ export function InventoryList({ items }: { items: OpenedSkin[] }) {
                 {displayName(skin)}
               </p>
               <p className="text-[10px] text-muted font-mono">
-                {skin.wear} · {skin.float.toFixed(4)}
+                {skin.hasWear && skin.float != null && skin.wear
+                  ? `${skin.wear} · ${skin.float.toFixed(4)}`
+                  : 'N/A'}
               </p>
             </div>
           </li>

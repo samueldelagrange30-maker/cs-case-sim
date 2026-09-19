@@ -1,6 +1,6 @@
-# Skin Csgo — Simulateur de caisses
+# Skin Csgo — Simulateur de caisses & capsules
 
-Simulateur **gratuit** d'ouverture de caisses d'armes Counter-Strike (CS2 / CS:GO).
+Simulateur **gratuit** d'ouverture de caisses, capsules et packages Counter-Strike (CS2 / CS:GO).
 
 > **Disclaimer :** Simulateur gratuit — aucun skin réel, aucun argent réel. Non affilié à Valve / Steam / Counter-Strike.
 
@@ -12,11 +12,12 @@ Déploiement : branche `gh-pages` (build statique `dist/`).
 
 ## Fonctionnalités
 
-- Grille de 42 caisses d'armes avec recherche
-- Page caisse : contenu par rareté, ouverture ×1 / ×5 / ×10
+- **472** caisses & capsules (filtre par type + recherche)
+- Types : Caisses, Stickers, Autographes, Souvenirs, Music Kits, Patches, Pins, Graffiti, Highlights
+- Page détail : contenu par rareté, ouverture ×1 / ×5 / ×10
 - Roulette animée style CS
-- Probabilités approximatives officielles (Mil-Spec 79,92 % · Restricted 15,98 % · Classified 3,2 % · Covert 0,64 % · Rare Special 0,26 %)
-- Usure FN/MW/FT/WW/BS + float, StatTrak™ (~10 %)
+- Probabilités approx. officielles pour les caisses d'armes ; poids style capsule pour les autres types
+- Usure FN/MW/FT/WW/BS + float pour skins ; N/A pour stickers / graffiti / pins / patches / music kits
 - Inventaire local (`localStorage`)
 
 ## Lancer en local
@@ -37,9 +38,14 @@ Le `base` Vite est configuré pour GitHub Pages : `/cs-case-sim/`.
 
 ## Données
 
-Les skins / caisses proviennent de **[ByMykel CSGO-API](https://github.com/ByMykel/CSGO-API)** (`crates.json`, filtrées en caisses d'armes). Images via le CDN Steam Community.
+Source : **[ByMykel CSGO-API](https://github.com/ByMykel/CSGO-API)** (`crates.json` / `all_crates.json`).
 
-Fichier utilisé : `public/data/weapon_cases.json`.
+Fichiers publiés (léger pour l'accueil) :
+
+- `public/data/crates_index.json` — liste (~220 Ko)
+- `public/data/crates/{id}.json` — contenu complet chargé à l'ouverture
+
+Régénération : `python3 scripts/build-crate-data.py [chemin/all_crates.json]`
 
 ## Tech
 

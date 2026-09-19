@@ -13,7 +13,8 @@ export function InventoryPage({ items, onClear }: Props) {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Inventaire</h1>
           <p className="text-sm text-muted mt-1">
-            {items.length} skin{items.length !== 1 ? 's' : ''} (stocké localement)
+            {items.length} item{items.length !== 1 ? 's' : ''} (stocké
+            localement)
           </p>
         </div>
         {items.length > 0 && (
