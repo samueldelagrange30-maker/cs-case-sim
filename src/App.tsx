@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { Header } from './components/Header'
-import { Inspect3DModal } from './components/inspect/Inspect3DModal'
+import { InspectModal } from './components/inspect/InspectModal'
 import { useCases } from './hooks/useCases'
 import { useInventory } from './hooks/useInventory'
 import { useMarket } from './hooks/useMarket'
@@ -205,6 +205,7 @@ export default function App() {
               element={
                 <MarketListingPage
                   getById={market.getById}
+                  sales={market.sales}
                   onBid={openBidModal}
                   onBuyout={handleBuyout}
                   onCancel={handleCancel}
@@ -222,7 +223,7 @@ export default function App() {
       </footer>
 
       {marketInspect && (
-        <Inspect3DModal
+        <InspectModal
           skin={marketInspect}
           onClose={() => setMarketInspect(null)}
           editable={false}

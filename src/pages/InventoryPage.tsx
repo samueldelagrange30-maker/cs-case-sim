@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { InventoryList } from '../components/InventoryList'
-import { Inspect3DModal } from '../components/inspect/Inspect3DModal'
+import { InspectModal } from '../components/inspect/InspectModal'
 import { ListForSaleModal } from '../components/market/ListForSaleModal'
 import { isSticker } from '../lib/stickers'
 import type { OpenedSkin } from '../types'
@@ -46,7 +46,7 @@ export function InventoryPage({
           <h1 className="text-2xl sm:text-3xl font-bold">Inventaire</h1>
           <p className="text-sm text-muted mt-1">
             {items.length} item{items.length !== 1 ? 's' : ''} (stocké
-            localement) — cliquez pour inspecter en 3D
+            localement) — cliquez pour inspecter
           </p>
         </div>
         {items.length > 0 && (
@@ -79,7 +79,7 @@ export function InventoryPage({
       )}
 
       {inspectSkin && (
-        <Inspect3DModal
+        <InspectModal
           skin={
             items.find((i) => i.uid === inspectSkin.uid) ?? inspectSkin
           }

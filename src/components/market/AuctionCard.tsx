@@ -91,7 +91,7 @@ export function AuctionCard({
             onClick={() => onInspect(skin)}
             className="text-[10px] text-accent text-left hover:underline"
           >
-            Inspecter 3D
+            Inspecter
           </button>
         )}
         <p className="text-[10px] text-muted">

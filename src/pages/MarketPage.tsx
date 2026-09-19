@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { AuctionCard } from '../components/market/AuctionCard'
 import { SalesChart } from '../components/market/SalesChart'
 import type { AuctionListing, OpenedSkin, SaleRecord } from '../types'
-import { formatSim, normalizeItemName } from '../lib/pricing'
+import { formatSim } from '../lib/pricing'
 
 type Tab = 'active' | 'mine' | 'sold'
 
@@ -202,41 +202,8 @@ export function MarketPage({
             )}
           </div>
 
-          {/* Mid-auction paths hint */}
-          {selectedItem && (
-            <BidPathSection
-              listings={listings}
-              itemName={selectedItem}
-            />
-          )}
         </div>
       )}
     </div>
-  )
-}
-
-function BidPathSection({
-  listings,
-  itemName,
-}: {
-  listings: AuctionListing[]
-  itemName: string
-}) {
-  const match = listings.find(
-    (l) =>
-      normalizeItemName(l.skin.item.name) === itemName &&
-      l.bids.length >= 2,
-  )
-  if (!match) return null
-  const points = match.bids.map((b) => ({
-    at: b.at,
-    value: b.amount,
-  }))
-  return (
-    <SalesChart
-      title={`Parcours d'enchères (exemple) — ${itemName}`}
-      points={points}
-      height={140}
-    />
   )
 }

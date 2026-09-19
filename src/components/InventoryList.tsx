@@ -35,7 +35,7 @@ export function InventoryList({ items, onListForSale, onInspect }: Props) {
               type="button"
               onClick={() => onInspect?.(skin)}
               className="aspect-square flex items-center justify-center bg-[#0a0d12] p-2 relative hover:brightness-110 transition text-left w-full"
-              title="Inspecter en 3D"
+              title="Inspecter"
             >
               <img
                 src={skin.item.image}

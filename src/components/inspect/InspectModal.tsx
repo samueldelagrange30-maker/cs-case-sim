@@ -9,7 +9,6 @@ import {
   MAX_STICKER_SLOTS,
   occupiedSlots,
 } from '../../lib/stickers'
-import { SkinMeshViewer } from './SkinMeshViewer'
 
 interface Props {
   skin: OpenedSkin
@@ -31,7 +30,10 @@ interface Props {
   onSkinUpdated?: (skin: OpenedSkin) => void
 }
 
-export function Inspect3DModal({
+/** Horizontal positions (%) for sticker slots overlaid on the weapon image. */
+const SLOT_LEFT_PCT = [12, 28, 44, 60, 76]
+
+export function InspectModal({
   skin: initialSkin,
   onClose,
   stickerInventory = [],
@@ -47,7 +49,6 @@ export function Inspect3DModal({
   )
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
   const [flash, setFlash] = useState<string | null>(null)
-  const [tainted, setTainted] = useState(false)
 
   useEffect(() => {
     setSkin(initialSkin)
@@ -111,11 +112,7 @@ export function Inspect3DModal({
 
   const handleRemove = (slot: number) => {
     if (!editable || !onRemoveSticker) return
-    if (
-      !confirm(
-        'Retirer ce sticker ? (il sera perdu)',
-      )
-    ) {
+    if (!confirm('Retirer ce sticker ? (il sera perdu)')) {
       return
     }
     const res = onRemoveSticker(skin.uid, slot)
@@ -135,7 +132,7 @@ export function Inspect3DModal({
       className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/80 p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Inspection 3D"
+      aria-label="Inspection"
       onClick={onClose}
     >
       <div
@@ -145,7 +142,7 @@ export function Inspect3DModal({
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-[#0a0d12]/95 px-4 py-3 backdrop-blur">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-wide text-muted">
-              Inspection 3D
+              Inspection
             </p>
             <h2 className="text-sm sm:text-base font-bold truncate">
               {displayName(skin)}
@@ -162,21 +159,33 @@ export function Inspect3DModal({
 
         <div className="p-3 sm:p-4 space-y-4">
           <div
-            className="relative rounded-xl border overflow-hidden"
+            className="relative rounded-xl border overflow-hidden bg-[#07090d]"
             style={{ borderColor: `${color}66` }}
           >
-            <div className="h-[min(52vh,420px)] w-full">
-              <SkinMeshViewer
-                skin={skin}
-                onTainted={setTainted}
-                onHtmlFallback={setTainted}
+            <div className="relative flex items-center justify-center min-h-[min(48vh,380px)] p-6 sm:p-10">
+              <img
+                src={skin.item.image}
+                alt={skin.item.name}
+                className="max-h-[min(42vh,340px)] max-w-full object-contain drop-shadow-lg"
               />
+              {/* Stickers overlaid on the weapon image (slot positions) */}
+              <div className="pointer-events-none absolute inset-x-0 bottom-[8%] h-14 sm:h-16">
+                {Array.from({ length: MAX_STICKER_SLOTS }, (_, slot) => {
+                  const st = stickers.find((s) => s.slot === slot)
+                  if (!st) return null
+                  return (
+                    <img
+                      key={`${st.uid}-${slot}`}
+                      src={st.item.image}
+                      alt={st.item.name}
+                      title={st.item.name}
+                      className="absolute h-10 w-10 sm:h-12 sm:w-12 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)] -translate-x-1/2"
+                      style={{ left: `${SLOT_LEFT_PCT[slot]}%`, bottom: 0 }}
+                    />
+                  )
+                })}
+              </div>
             </div>
-            <p className="absolute bottom-2 left-3 text-[10px] text-muted/80">
-              {tainted
-                ? 'Glisser pour tourner la carte'
-                : 'Glisser pour tourner · molette pour zoomer'}
-            </p>
           </div>
 
           <div className="flex flex-wrap gap-3 items-start justify-between">

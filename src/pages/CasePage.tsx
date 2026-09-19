@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { OpenOverlay } from '../components/OpenOverlay'
 import { ResultCard } from '../components/ResultCard'
-import { Inspect3DModal } from '../components/inspect/Inspect3DModal'
+import { InspectModal } from '../components/inspect/InspectModal'
 import { useCrate } from '../hooks/useCrate'
 import { typeLabel } from '../lib/crateTypes'
 import { isSticker } from '../lib/stickers'
@@ -255,7 +255,7 @@ export function CasePage({ onOpened, inventory = [], onApplySticker, onRemoveSti
       </section>
 
       {inspectSkin && (
-        <Inspect3DModal
+        <InspectModal
           skin={
             inventory.find((i) => i.uid === inspectSkin.uid) ?? inspectSkin
           }

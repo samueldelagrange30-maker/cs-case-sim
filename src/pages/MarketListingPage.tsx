@@ -1,13 +1,15 @@
+import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import type { AuctionListing, OpenedSkin } from '../types'
+import type { AuctionListing, OpenedSkin, SaleRecord } from '../types'
 import { displayName, rarityColor } from '../lib/odds'
-import { formatSim } from '../lib/pricing'
+import { formatSim, normalizeItemName } from '../lib/pricing'
 import { getStickers } from '../lib/stickers'
 import { Countdown } from '../components/market/Countdown'
 import { SalesChart } from '../components/market/SalesChart'
 
 interface Props {
   getById: (id: string) => AuctionListing | undefined
+  sales: SaleRecord[]
   onBid: (listing: AuctionListing) => void
   onBuyout: (listing: AuctionListing) => void
   onCancel: (listing: AuctionListing) => void
@@ -16,6 +18,7 @@ interface Props {
 
 export function MarketListingPage({
   getById,
+  sales,
   onBid,
   onBuyout,
   onCancel,
@@ -23,6 +26,18 @@ export function MarketListingPage({
 }: Props) {
   const { listingId } = useParams()
   const listing = listingId ? getById(listingId) : undefined
+
+  const itemKey = listing
+    ? normalizeItemName(listing.skin.item.name)
+    : null
+
+  const salePoints = useMemo(() => {
+    if (!itemKey) return []
+    return sales
+      .filter((s) => s.itemName === itemKey)
+      .map((s) => ({ at: s.soldAt, value: s.soldPrice }))
+      .sort((a, b) => a.at - b.at)
+  }, [sales, itemKey])
 
   if (!listing) {
     return (
@@ -38,10 +53,7 @@ export function MarketListingPage({
   const { skin } = listing
   const color = rarityColor(skin)
   const isYours = listing.seller === 'you'
-  const bidPoints = [
-    { at: listing.createdAt, value: listing.startPrice },
-    ...listing.bids.map((b) => ({ at: b.at, value: b.amount })),
-  ]
+  const chartName = itemKey ?? displayName(skin)
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -55,7 +67,7 @@ export function MarketListingPage({
           onClick={() => onInspect?.(skin)}
           className="rounded-xl border bg-panel p-4 flex flex-col items-center justify-center aspect-square relative hover:brightness-110 transition"
           style={{ borderColor: `${color}88` }}
-          title="Inspecter en 3D"
+          title="Inspecter"
         >
           <img
             src={skin.item.image}
@@ -75,7 +87,7 @@ export function MarketListingPage({
             </span>
           )}
           <span className="absolute bottom-2 left-2 text-[10px] text-accent bg-panel/80 px-1.5 py-0.5 rounded">
-            Inspecter 3D
+            Inspecter
           </span>
         </button>
 
@@ -203,13 +215,11 @@ export function MarketListingPage({
         )}
       </section>
 
-      {bidPoints.length >= 1 && (
-        <SalesChart
-          title="Courbe des enchères (cette vente)"
-          points={bidPoints}
-          height={160}
-        />
-      )}
+      <SalesChart
+        title={`Historique des ventes finales — ${chartName}`}
+        points={salePoints}
+        height={160}
+      />
     </div>
   )
 }
