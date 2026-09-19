@@ -20,6 +20,8 @@ Déploiement : branche `gh-pages` (build statique `dist/`).
 - Usure FN/MW/FT/WW/BS + float pour skins ; N/A pour stickers / graffiti / pins / patches / music kits
 - Inventaire local (`localStorage`)
 - **Marché aux enchères simulé** ($SIM) : mise en vente, bots, courbe de prix
+- **Inspection 3D** (Three.js) : rotation / zoom sur les skins
+- **Stickers** : appliquer jusqu’à 5 stickers sur une arme (consommés depuis l’inventaire) ; visibles sur le marché
 
 ## Lancer en local
 
@@ -50,7 +52,7 @@ Régénération : `python3 scripts/build-crate-data.py [chemin/all_crates.json]`
 
 ## Tech
 
-Vite + React + TypeScript + Tailwind CSS (SPA).
+Vite + React + TypeScript + Tailwind CSS + Three.js (SPA).
 
 ## Licence
 

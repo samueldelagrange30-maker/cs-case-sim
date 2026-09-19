@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { InventoryList } from '../components/InventoryList'
+import { Inspect3DModal } from '../components/inspect/Inspect3DModal'
 import { ListForSaleModal } from '../components/market/ListForSaleModal'
+import { isSticker } from '../lib/stickers'
 import type { OpenedSkin } from '../types'
 
 interface Props {
@@ -14,10 +16,28 @@ interface Props {
       durationMinutes: number
     },
   ) => void
+  onApplySticker: (
+    weaponUid: string,
+    stickerUid: string,
+    slot: number,
+  ) => { ok: boolean; error?: string; weapon?: OpenedSkin }
+  onRemoveSticker: (
+    weaponUid: string,
+    slot: number,
+  ) => { ok: boolean; error?: string; weapon?: OpenedSkin }
 }
 
-export function InventoryPage({ items, onClear, onListForSale }: Props) {
+export function InventoryPage({
+  items,
+  onClear,
+  onListForSale,
+  onApplySticker,
+  onRemoveSticker,
+}: Props) {
   const [listingSkin, setListingSkin] = useState<OpenedSkin | null>(null)
+  const [inspectSkin, setInspectSkin] = useState<OpenedSkin | null>(null)
+
+  const stickerInventory = items.filter(isSticker)
 
   return (
     <div className="space-y-6">
@@ -26,7 +46,7 @@ export function InventoryPage({ items, onClear, onListForSale }: Props) {
           <h1 className="text-2xl sm:text-3xl font-bold">Inventaire</h1>
           <p className="text-sm text-muted mt-1">
             {items.length} item{items.length !== 1 ? 's' : ''} (stocké
-            localement)
+            localement) — cliquez pour inspecter en 3D
           </p>
         </div>
         {items.length > 0 && (
@@ -41,7 +61,11 @@ export function InventoryPage({ items, onClear, onListForSale }: Props) {
           </button>
         )}
       </div>
-      <InventoryList items={items} onListForSale={setListingSkin} />
+      <InventoryList
+        items={items}
+        onListForSale={setListingSkin}
+        onInspect={setInspectSkin}
+      />
 
       {listingSkin && (
         <ListForSaleModal
@@ -51,6 +75,20 @@ export function InventoryPage({ items, onClear, onListForSale }: Props) {
             onListForSale(listingSkin, opts)
             setListingSkin(null)
           }}
+        />
+      )}
+
+      {inspectSkin && (
+        <Inspect3DModal
+          skin={
+            items.find((i) => i.uid === inspectSkin.uid) ?? inspectSkin
+          }
+          onClose={() => setInspectSkin(null)}
+          editable
+          stickerInventory={stickerInventory}
+          onApplySticker={onApplySticker}
+          onRemoveSticker={onRemoveSticker}
+          onSkinUpdated={setInspectSkin}
         />
       )}
     </div>

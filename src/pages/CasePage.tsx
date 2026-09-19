@@ -2,8 +2,10 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { OpenOverlay } from '../components/OpenOverlay'
 import { ResultCard } from '../components/ResultCard'
+import { Inspect3DModal } from '../components/inspect/Inspect3DModal'
 import { useCrate } from '../hooks/useCrate'
 import { typeLabel } from '../lib/crateTypes'
+import { isSticker } from '../lib/stickers'
 import {
   crateHasWear,
   groupByTier,
@@ -25,11 +27,21 @@ const TIER_ORDER: RarityTier[] = [
 
 interface Props {
   onOpened: (skins: OpenedSkin[]) => void
+  inventory?: OpenedSkin[]
+  onApplySticker?: (
+    weaponUid: string,
+    stickerUid: string,
+    slot: number,
+  ) => { ok: boolean; error?: string; weapon?: OpenedSkin }
+  onRemoveSticker?: (
+    weaponUid: string,
+    slot: number,
+  ) => { ok: boolean; error?: string; weapon?: OpenedSkin }
 }
 
 type Phase = 'idle' | 'spinning' | 'results'
 
-export function CasePage({ onOpened }: Props) {
+export function CasePage({ onOpened, inventory = [], onApplySticker, onRemoveSticker }: Props) {
   const { id } = useParams()
   const { crate: caseData, loading, error } = useCrate(
     id ? decodeURIComponent(id) : undefined,
@@ -38,6 +50,7 @@ export function CasePage({ onOpened }: Props) {
   const [phase, setPhase] = useState<Phase>('idle')
   const [pending, setPending] = useState<OpenedSkin[]>([])
   const [lastResults, setLastResults] = useState<OpenedSkin[]>([])
+  const [inspectSkin, setInspectSkin] = useState<OpenedSkin | null>(null)
 
   const pendingRef = useRef<OpenedSkin[]>([])
   const addedRef = useRef(false)
@@ -171,6 +184,7 @@ export function CasePage({ onOpened }: Props) {
           winners={pending}
           onDone={handleOverlayDone}
           onReopenOne={handleReopenOne}
+          onInspect={setInspectSkin}
         />
       )}
 
@@ -181,7 +195,7 @@ export function CasePage({ onOpened }: Props) {
           </h2>
           <div className="grid gap-3">
             {lastResults.map((s) => (
-              <ResultCard key={s.uid} skin={s} />
+              <ResultCard key={s.uid} skin={s} onInspect={setInspectSkin} />
             ))}
           </div>
           <button
@@ -239,6 +253,20 @@ export function CasePage({ onOpened }: Props) {
           )
         })}
       </section>
+
+      {inspectSkin && (
+        <Inspect3DModal
+          skin={
+            inventory.find((i) => i.uid === inspectSkin.uid) ?? inspectSkin
+          }
+          onClose={() => setInspectSkin(null)}
+          editable={inventory.some((i) => i.uid === inspectSkin.uid)}
+          stickerInventory={inventory.filter(isSticker)}
+          onApplySticker={onApplySticker}
+          onRemoveSticker={onRemoveSticker}
+          onSkinUpdated={setInspectSkin}
+        />
+      )}
     </div>
   )
 }

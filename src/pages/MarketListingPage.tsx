@@ -1,7 +1,8 @@
 import { Link, useParams } from 'react-router-dom'
-import type { AuctionListing } from '../types'
+import type { AuctionListing, OpenedSkin } from '../types'
 import { displayName, rarityColor } from '../lib/odds'
 import { formatSim } from '../lib/pricing'
+import { getStickers } from '../lib/stickers'
 import { Countdown } from '../components/market/Countdown'
 import { SalesChart } from '../components/market/SalesChart'
 
@@ -10,6 +11,7 @@ interface Props {
   onBid: (listing: AuctionListing) => void
   onBuyout: (listing: AuctionListing) => void
   onCancel: (listing: AuctionListing) => void
+  onInspect?: (skin: OpenedSkin) => void
 }
 
 export function MarketListingPage({
@@ -17,6 +19,7 @@ export function MarketListingPage({
   onBid,
   onBuyout,
   onCancel,
+  onInspect,
 }: Props) {
   const { listingId } = useParams()
   const listing = listingId ? getById(listingId) : undefined
@@ -47,16 +50,34 @@ export function MarketListingPage({
       </Link>
 
       <div className="grid sm:grid-cols-2 gap-6">
-        <div
-          className="rounded-xl border bg-panel p-4 flex items-center justify-center aspect-square"
+        <button
+          type="button"
+          onClick={() => onInspect?.(skin)}
+          className="rounded-xl border bg-panel p-4 flex flex-col items-center justify-center aspect-square relative hover:brightness-110 transition"
           style={{ borderColor: `${color}88` }}
+          title="Inspecter en 3D"
         >
           <img
             src={skin.item.image}
             alt={skin.item.name}
             className="max-h-full max-w-full object-contain"
           />
-        </div>
+          {getStickers(skin).length > 0 && (
+            <span className="absolute bottom-3 right-3 flex -space-x-1">
+              {getStickers(skin).map((s) => (
+                <img
+                  key={`${s.uid}-${s.slot}`}
+                  src={s.item.image}
+                  alt=""
+                  className="h-7 w-7 rounded-full border border-border bg-panel object-contain"
+                />
+              ))}
+            </span>
+          )}
+          <span className="absolute bottom-2 left-2 text-[10px] text-accent bg-panel/80 px-1.5 py-0.5 rounded">
+            Inspecter 3D
+          </span>
+        </button>
 
         <div className="space-y-3">
           <p className="text-xs font-semibold" style={{ color }}>
@@ -69,6 +90,20 @@ export function MarketListingPage({
               ? `${skin.wearLabel} (${skin.wear}) · float ${skin.float.toFixed(6)}`
               : 'Usure N/A'}
           </p>
+          {getStickers(skin).length > 0 && (
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-xs text-muted">Stickers :</span>
+              {getStickers(skin).map((s) => (
+                <img
+                  key={`${s.uid}-${s.slot}`}
+                  src={s.item.image}
+                  alt={s.item.name}
+                  title={s.item.name}
+                  className="h-8 w-8 object-contain"
+                />
+              ))}
+            </div>
+          )}
           <p className="text-sm text-muted">
             Vendeur : {isYours ? 'Vous' : listing.seller}
           </p>

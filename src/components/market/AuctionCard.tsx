@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
-import type { AuctionListing } from '../../types'
+import type { AuctionListing, OpenedSkin } from '../../types'
 import { displayName, rarityColor } from '../../lib/odds'
 import { formatSim } from '../../lib/pricing'
+import { getStickers } from '../../lib/stickers'
 import { Countdown } from './Countdown'
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
   onBid?: (listing: AuctionListing) => void
   onBuyout?: (listing: AuctionListing) => void
   onCancel?: (listing: AuctionListing) => void
+  onInspect?: (skin: OpenedSkin) => void
   compact?: boolean
 }
 
@@ -17,10 +19,12 @@ export function AuctionCard({
   onBid,
   onBuyout,
   onCancel,
+  onInspect,
   compact,
 }: Props) {
   const { skin } = listing
   const color = rarityColor(skin)
+  const stickers = getStickers(skin)
   const isYours = listing.seller === 'you'
   const bidderLabel =
     listing.currentBidder == null
@@ -37,20 +41,43 @@ export function AuctionCard({
         boxShadow: `inset 0 -2px 0 ${color}`,
       }}
     >
-      <Link to={`/market/${listing.id}`} className="block">
-        <div className="aspect-square flex items-center justify-center bg-[#0a0d12] p-2">
+      <div className="relative aspect-square flex items-center justify-center bg-[#0a0d12] p-2">
+        <Link to={`/market/${listing.id}`} className="absolute inset-0 z-0" />
+        <button
+          type="button"
+          className="relative z-10 h-full w-full flex items-center justify-center"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            onInspect?.(skin)
+          }}
+          title="Inspecter en 3D"
+        >
           <img
             src={skin.item.image}
             alt={skin.item.name}
-            className="max-h-full max-w-full object-contain"
+            className="max-h-full max-w-full object-contain pointer-events-none"
             loading="lazy"
           />
-        </div>
-      </Link>
+        </button>
+        {stickers.length > 0 && (
+          <span className="absolute bottom-1 right-1 z-10 flex -space-x-1 pointer-events-none">
+            {stickers.slice(0, 5).map((s) => (
+              <img
+                key={`${s.uid}-${s.slot}`}
+                src={s.item.image}
+                alt=""
+                className="h-5 w-5 rounded-full border border-border bg-panel object-contain"
+              />
+            ))}
+          </span>
+        )}
+      </div>
       <div className="p-2.5 space-y-1.5 flex-1 flex flex-col">
         <p className="text-[10px] font-semibold" style={{ color }}>
           {skin.isRareSpecial ? '★ Rare' : skin.item.rarity.name}
           {skin.isStatTrak ? ' · ST' : ''}
+          {stickers.length > 0 ? ` · ${stickers.length} stk` : ''}
         </p>
         <Link
           to={`/market/${listing.id}`}
@@ -58,6 +85,15 @@ export function AuctionCard({
         >
           {displayName(skin)}
         </Link>
+        {onInspect && (
+          <button
+            type="button"
+            onClick={() => onInspect(skin)}
+            className="text-[10px] text-accent text-left hover:underline"
+          >
+            Inspecter 3D
+          </button>
+        )}
         <p className="text-[10px] text-muted">
           Vendeur : {isYours ? 'Vous' : listing.seller}
         </p>

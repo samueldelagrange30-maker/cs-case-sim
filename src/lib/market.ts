@@ -1,5 +1,6 @@
 import type { AuctionListing, OpenedSkin, SaleRecord, WearKey } from '../types'
 import { randomBotName } from './bots'
+import { cloneSkinSnapshot } from './stickers'
 import { estimateFairValue, normalizeItemName, suggestBuyout, suggestStartPrice } from './pricing'
 import { SEED_SKIN_TEMPLATES } from './seedListings'
 import { floatToWear } from './odds'
@@ -47,6 +48,7 @@ function makeSeedSkin(
     isStatTrak: !tpl.isRareSpecial && Math.random() < 0.12,
     isRareSpecial: tpl.isRareSpecial,
     openedAt: Date.now() - Math.floor(Math.random() * 86400000),
+    stickers: [],
   }
 }
 
@@ -138,7 +140,15 @@ export function loadMarket(): MarketState {
       localStorage.setItem(SEEDED_KEY, '1')
       return state
     }
-    return parsed
+    return {
+      listings: parsed.listings.map((l) => ({
+        ...l,
+        skin: {
+          ...l.skin,
+          stickers: Array.isArray(l.skin?.stickers) ? l.skin.stickers : [],
+        },
+      })),
+    }
   } catch {
     return { listings: [] }
   }
@@ -158,7 +168,7 @@ export function createUserListing(
   const fair = estimateFairValue(skin, (Math.random() - 0.5) * 0.1)
   return {
     id: uid(),
-    skin,
+    skin: cloneSkinSnapshot(skin),
     seller: 'you',
     startPrice,
     buyoutPrice:

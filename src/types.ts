@@ -54,6 +54,17 @@ export type WeaponCase = Crate
 
 export type WearKey = 'FN' | 'MW' | 'FT' | 'WW' | 'BS'
 
+/** Sticker applied onto a weapon skin (CS-like slots 0..4). */
+export interface AppliedSticker {
+  /** Sticker inventory uid consumed */
+  uid: string
+  /** Sticker snapshot (name, image, rarity) */
+  item: SkinItem
+  /** Slot index 0..4 */
+  slot: number
+  scraped?: boolean
+}
+
 export interface OpenedSkin {
   uid: string
   caseId: string
@@ -67,6 +78,8 @@ export interface OpenedSkin {
   isStatTrak: boolean
   isRareSpecial: boolean
   openedAt: number
+  /** Applied stickers (max 5 slots). Normalized to [] on load. */
+  stickers?: AppliedSticker[]
 }
 
 export type RarityTier =

@@ -215,6 +215,7 @@ export function openCase(c: Crate): OpenedSkin {
     isStatTrak,
     isRareSpecial,
     openedAt: Date.now(),
+    stickers: [],
   }
 }
 

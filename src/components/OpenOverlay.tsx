@@ -24,6 +24,7 @@ interface Props {
   onDone: () => void
   /** Optional: reopen ×1 after inventory is committed. */
   onReopenOne?: () => void
+  onInspect?: (skin: OpenedSkin) => void
 }
 
 type UiPhase = 'spin' | 'reveal' | 'results'
@@ -33,6 +34,7 @@ export function OpenOverlay({
   winners,
   onDone,
   onReopenOne,
+  onInspect,
 }: Props) {
   const [current, setCurrent] = useState(0)
   const [offset, setOffset] = useState(0)
@@ -341,7 +343,7 @@ export function OpenOverlay({
             </h2>
             <div className="grid gap-3 max-w-3xl mx-auto sm:mx-0">
               {winners.map((s) => (
-                <ResultCard key={s.uid} skin={s} />
+                <ResultCard key={s.uid} skin={s} onInspect={onInspect} />
               ))}
             </div>
           </div>

@@ -1,6 +1,25 @@
-import type { OpenedSkin } from '../types'
+import type { AppliedSticker, OpenedSkin } from '../types'
 
 const KEY = 'cs-case-sim-inventory-v1'
+
+function normalizeStickers(raw: unknown): AppliedSticker[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter(
+      (s): s is AppliedSticker =>
+        !!s &&
+        typeof s === 'object' &&
+        typeof (s as AppliedSticker).uid === 'string' &&
+        typeof (s as AppliedSticker).slot === 'number' &&
+        !!(s as AppliedSticker).item,
+    )
+    .map((s) => ({
+      uid: s.uid,
+      item: s.item,
+      slot: Math.max(0, Math.min(4, Math.floor(s.slot))),
+      scraped: !!s.scraped,
+    }))
+}
 
 function normalize(raw: Partial<OpenedSkin> & { item: OpenedSkin['item'] }): OpenedSkin {
   const hasWear =
@@ -19,6 +38,7 @@ function normalize(raw: Partial<OpenedSkin> & { item: OpenedSkin['item'] }): Ope
     isStatTrak: !!raw.isStatTrak,
     isRareSpecial: !!raw.isRareSpecial,
     openedAt: raw.openedAt ?? Date.now(),
+    stickers: normalizeStickers(raw.stickers),
   }
 }
 

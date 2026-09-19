@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AuctionCard } from '../components/market/AuctionCard'
 import { SalesChart } from '../components/market/SalesChart'
-import type { AuctionListing, SaleRecord } from '../types'
+import type { AuctionListing, OpenedSkin, SaleRecord } from '../types'
 import { formatSim, normalizeItemName } from '../lib/pricing'
 
 type Tab = 'active' | 'mine' | 'sold'
@@ -15,6 +15,7 @@ interface Props {
   onBid: (listing: AuctionListing) => void
   onBuyout: (listing: AuctionListing) => void
   onCancel: (listing: AuctionListing) => void
+  onInspect?: (skin: OpenedSkin) => void
 }
 
 export function MarketPage({
@@ -25,6 +26,7 @@ export function MarketPage({
   onBid,
   onBuyout,
   onCancel,
+  onInspect,
 }: Props) {
   const [tab, setTab] = useState<Tab>('active')
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
@@ -97,6 +99,7 @@ export function MarketPage({
                     onBid={onBid}
                     onBuyout={onBuyout}
                     onCancel={onCancel}
+                    onInspect={onInspect}
                   />
                 </li>
               ))}
@@ -118,6 +121,7 @@ export function MarketPage({
                   <AuctionCard
                     listing={l}
                     onCancel={onCancel}
+                    onInspect={onInspect}
                   />
                 </li>
               ))}

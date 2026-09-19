@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { Header } from './components/Header'
+import { Inspect3DModal } from './components/inspect/Inspect3DModal'
 import { useCases } from './hooks/useCases'
 import { useInventory } from './hooks/useInventory'
 import { useMarket } from './hooks/useMarket'
@@ -10,12 +11,21 @@ import { HomePage } from './pages/HomePage'
 import { InventoryPage } from './pages/InventoryPage'
 import { MarketListingPage } from './pages/MarketListingPage'
 import { MarketPage } from './pages/MarketPage'
+import { isSticker } from './lib/stickers'
 import type { AuctionListing, OpenedSkin } from './types'
 import { formatSim } from './lib/pricing'
 
 export default function App() {
   const { cases, loading, error } = useCases()
-  const { items, addItems, clear, count, removeFromInventory } = useInventory()
+  const {
+    items,
+    addItems,
+    clear,
+    count,
+    removeFromInventory,
+    applySticker,
+    removeSticker,
+  } = useInventory()
   const { balance, credit, debit } = useWallet()
   const navigate = useNavigate()
 
@@ -36,11 +46,30 @@ export default function App() {
   const [bidTarget, setBidTarget] = useState<AuctionListing | null>(null)
   const [bidAmount, setBidAmount] = useState(0)
   const [flash, setFlash] = useState<string | null>(null)
+  const [marketInspect, setMarketInspect] = useState<OpenedSkin | null>(null)
 
   const showFlash = useCallback((msg: string) => {
     setFlash(msg)
     window.setTimeout(() => setFlash(null), 3200)
   }, [])
+
+  const handleApplySticker = useCallback(
+    (weaponUid: string, stickerUid: string, slot: number) => {
+      const res = applySticker(weaponUid, stickerUid, slot)
+      if (!res.ok) return { ok: false as const, error: res.error }
+      return { ok: true as const, weapon: res.weapon }
+    },
+    [applySticker],
+  )
+
+  const handleRemoveSticker = useCallback(
+    (weaponUid: string, slot: number) => {
+      const res = removeSticker(weaponUid, slot)
+      if (!res.ok) return { ok: false as const, error: res.error }
+      return { ok: true as const, weapon: res.weapon }
+    },
+    [removeSticker],
+  )
 
   const handleListForSale = useCallback(
     (
@@ -109,6 +138,8 @@ export default function App() {
     else showFlash('Vente annulée — item rendu à l’inventaire.')
   }
 
+  const stickerInventory = items.filter(isSticker)
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header inventoryCount={count} walletBalance={balance} />
@@ -133,7 +164,14 @@ export default function App() {
             <Route path="/" element={<HomePage cases={cases} />} />
             <Route
               path="/case/:id"
-              element={<CasePage onOpened={addItems} />}
+              element={
+                <CasePage
+                  onOpened={addItems}
+                  inventory={items}
+                  onApplySticker={handleApplySticker}
+                  onRemoveSticker={handleRemoveSticker}
+                />
+              }
             />
             <Route
               path="/inventory"
@@ -142,6 +180,8 @@ export default function App() {
                   items={items}
                   onClear={clear}
                   onListForSale={handleListForSale}
+                  onApplySticker={handleApplySticker}
+                  onRemoveSticker={handleRemoveSticker}
                 />
               }
             />
@@ -156,6 +196,7 @@ export default function App() {
                   onBid={openBidModal}
                   onBuyout={handleBuyout}
                   onCancel={handleCancel}
+                  onInspect={setMarketInspect}
                 />
               }
             />
@@ -167,6 +208,7 @@ export default function App() {
                   onBid={openBidModal}
                   onBuyout={handleBuyout}
                   onCancel={handleCancel}
+                  onInspect={setMarketInspect}
                 />
               }
             />
@@ -178,6 +220,15 @@ export default function App() {
         Données skins : ByMykel CSGO-API · Skin Csgo — Simulateur de caisses
         &amp; capsules · Marché $SIM simulé
       </footer>
+
+      {marketInspect && (
+        <Inspect3DModal
+          skin={marketInspect}
+          onClose={() => setMarketInspect(null)}
+          editable={false}
+          stickerInventory={stickerInventory}
+        />
+      )}
 
       {bidTarget && (
         <div
