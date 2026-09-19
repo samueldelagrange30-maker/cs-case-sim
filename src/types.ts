@@ -74,6 +74,8 @@ export interface OpenedSkin {
   wear: WearKey | null
   wearLabel: string
   float: number | null
+  /** Paint seed 0–1000 (pattern); used by SkinHub 360° viewer. */
+  paintSeed?: number | null
   hasWear: boolean
   isStatTrak: boolean
   isRareSpecial: boolean

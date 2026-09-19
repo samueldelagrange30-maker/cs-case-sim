@@ -44,6 +44,7 @@ function makeSeedSkin(
     wear: wear?.key ?? null,
     wearLabel: wear?.label ?? 'N/A',
     float,
+    paintSeed: hasWear ? Math.floor(Math.random() * 1001) : null,
     hasWear,
     isStatTrak: !tpl.isRareSpecial && Math.random() < 0.12,
     isRareSpecial: tpl.isRareSpecial,

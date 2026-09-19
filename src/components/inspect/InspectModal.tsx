@@ -1,8 +1,12 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { OpenedSkin, SaleRecord } from '../../types'
 import { displayName, rarityColor } from '../../lib/odds'
 import { normalizeItemName } from '../../lib/pricing'
 import { getStickers, MAX_STICKER_SLOTS } from '../../lib/stickers'
+import {
+  buildSkinHubFrameUrl,
+  canUseSkinHubViewer,
+} from '../../lib/skinHub'
 import { SalesChart } from '../market/SalesChart'
 
 interface Props {
@@ -16,6 +20,19 @@ interface Props {
 const SLOT_LEFT_PCT = [12, 28, 44, 60, 76]
 
 export function InspectModal({ skin, onClose, sales = [] }: Props) {
+  const use3d = canUseSkinHubViewer(skin)
+  const frameUrl = useMemo(
+    () => (use3d ? buildSkinHubFrameUrl(skin, { side: 'left' }) : ''),
+    [skin, use3d],
+  )
+  const [iframeLoaded, setIframeLoaded] = useState(false)
+  const [iframeFailed, setIframeFailed] = useState(false)
+
+  useEffect(() => {
+    setIframeLoaded(false)
+    setIframeFailed(false)
+  }, [frameUrl])
+
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -33,6 +50,7 @@ export function InspectModal({ skin, onClose, sales = [] }: Props) {
   const stickers = getStickers(skin)
   const itemKey = normalizeItemName(skin.item.name)
   const chartName = displayName(skin)
+  const showIframe = use3d && !iframeFailed
 
   const salePoints = useMemo(
     () =>
@@ -77,31 +95,72 @@ export function InspectModal({ skin, onClose, sales = [] }: Props) {
             className="relative rounded-xl border overflow-hidden bg-[#07090d]"
             style={{ borderColor: `${color}66` }}
           >
-            <div className="relative flex items-center justify-center min-h-[min(48vh,380px)] p-6 sm:p-10">
-              <img
-                src={skin.item.image}
-                alt={skin.item.name}
-                className="max-h-[min(42vh,340px)] max-w-full object-contain drop-shadow-lg"
-              />
-              {stickers.length > 0 && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-[8%] h-14 sm:h-16">
-                  {Array.from({ length: MAX_STICKER_SLOTS }, (_, slot) => {
-                    const st = stickers.find((s) => s.slot === slot)
-                    if (!st) return null
-                    return (
-                      <img
-                        key={`${st.uid}-${slot}`}
-                        src={st.item.image}
-                        alt={st.item.name}
-                        title={st.item.name}
-                        className="absolute h-10 w-10 sm:h-12 sm:w-12 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)] -translate-x-1/2"
-                        style={{ left: `${SLOT_LEFT_PCT[slot]}%`, bottom: 0 }}
-                      />
-                    )
-                  })}
+            {showIframe ? (
+              <div className="relative min-h-[360px] h-[min(52vh,440px)] bg-[#07090d]">
+                <div className="absolute top-3 left-3 z-[2] flex items-center gap-2 pointer-events-none">
+                  <span className="rounded-md bg-black/70 border border-white/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white/90">
+                    360°
+                  </span>
                 </div>
-              )}
-            </div>
+                {!iframeLoaded && (
+                  <div
+                    className="absolute inset-0 z-[1] animate-pulse bg-gradient-to-br from-[#0c1018] via-[#121820] to-[#0a0d12]"
+                    aria-hidden
+                  >
+                    <div className="absolute inset-8 rounded-lg border border-white/5 bg-white/5" />
+                    <p className="absolute bottom-4 left-0 right-0 text-center text-[11px] text-muted">
+                      Chargement de l&apos;aperçu 360°…
+                    </p>
+                  </div>
+                )}
+                <iframe
+                  key={frameUrl}
+                  src={frameUrl}
+                  title="Aperçu 360°"
+                  allow="fullscreen"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  className="absolute inset-0 h-full w-full border-0 bg-transparent"
+                  onLoad={() => setIframeLoaded(true)}
+                  onError={() => setIframeFailed(true)}
+                />
+                <p className="absolute bottom-2 left-0 right-0 z-[2] pointer-events-none text-center text-[10px] sm:text-[11px] text-white/55 drop-shadow">
+                  Glisser pour tourner · molette pour zoomer
+                </p>
+                {/* Tiny 2D thumbnail corner for reference */}
+                <img
+                  src={skin.item.image}
+                  alt=""
+                  aria-hidden
+                  className="absolute bottom-3 right-3 z-[2] h-12 w-12 sm:h-14 sm:w-14 object-contain rounded-md border border-white/10 bg-black/50 p-1 opacity-80"
+                />
+              </div>
+            ) : (
+              <div className="relative flex items-center justify-center min-h-[min(48vh,380px)] p-6 sm:p-10">
+                <img
+                  src={skin.item.image}
+                  alt={skin.item.name}
+                  className="max-h-[min(42vh,340px)] max-w-full object-contain drop-shadow-lg"
+                />
+                {stickers.length > 0 && (
+                  <div className="pointer-events-none absolute inset-x-0 bottom-[8%] h-14 sm:h-16">
+                    {Array.from({ length: MAX_STICKER_SLOTS }, (_, slot) => {
+                      const st = stickers.find((s) => s.slot === slot)
+                      if (!st) return null
+                      return (
+                        <img
+                          key={`${st.uid}-${slot}`}
+                          src={st.item.image}
+                          alt={st.item.name}
+                          title={st.item.name}
+                          className="absolute h-10 w-10 sm:h-12 sm:w-12 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)] -translate-x-1/2"
+                          style={{ left: `${SLOT_LEFT_PCT[slot]}%`, bottom: 0 }}
+                        />
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-1 min-w-0">
@@ -113,6 +172,9 @@ export function InspectModal({ skin, onClose, sales = [] }: Props) {
               {skin.hasWear && skin.float != null
                 ? `${skin.wearLabel} (${skin.wear}) · float ${skin.float.toFixed(6)}`
                 : 'Usure / float : N/A'}
+              {skin.hasWear && skin.paintSeed != null
+                ? ` · seed ${skin.paintSeed}`
+                : ''}
             </p>
             <p className="text-[11px] text-muted">Depuis {skin.caseName}</p>
           </div>

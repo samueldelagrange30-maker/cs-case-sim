@@ -21,6 +21,13 @@ function normalizeStickers(raw: unknown): AppliedSticker[] {
     }))
 }
 
+
+function seedFromUid(uid: string): number {
+  let h = 0
+  for (let i = 0; i < uid.length; i++) h = (h * 31 + uid.charCodeAt(i)) >>> 0
+  return h % 1001
+}
+
 function normalize(raw: Partial<OpenedSkin> & { item: OpenedSkin['item'] }): OpenedSkin {
   const hasWear =
     raw.hasWear ??
@@ -34,6 +41,12 @@ function normalize(raw: Partial<OpenedSkin> & { item: OpenedSkin['item'] }): Ope
     wear: hasWear ? (raw.wear ?? null) : null,
     wearLabel: hasWear ? (raw.wearLabel ?? 'Factory New') : 'N/A',
     float: hasWear ? (raw.float ?? null) : null,
+    paintSeed:
+      typeof raw.paintSeed === 'number' && Number.isFinite(raw.paintSeed)
+        ? Math.floor(raw.paintSeed)
+        : hasWear
+          ? seedFromUid(raw.uid ?? '')
+          : null,
     hasWear,
     isStatTrak: !!raw.isStatTrak,
     isRareSpecial: !!raw.isRareSpecial,

@@ -213,6 +213,7 @@ export function openCase(c: Crate): OpenedSkin {
     wear: wear?.key ?? null,
     wearLabel: wear?.label ?? 'N/A',
     float: float != null ? Number(float.toFixed(8)) : null,
+    paintSeed: hasWear ? Math.floor(Math.random() * 1001) : null,
     hasWear,
     isStatTrak,
     isRareSpecial,

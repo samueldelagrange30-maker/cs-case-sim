@@ -211,6 +211,7 @@ export function performTradeUp(
     wear: resultWear.key as WearKey,
     wearLabel: resultWear.label,
     float: Number(resultFloat.toFixed(8)),
+    paintSeed: Math.floor(Math.random() * 1001),
     hasWear: true,
     isStatTrak: inputs.every((s) => s.isStatTrak),
     isRareSpecial: false,
