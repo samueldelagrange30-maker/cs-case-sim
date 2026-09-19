@@ -144,6 +144,8 @@ export function canUseSkinHubViewer(skin: OpenedSkin): boolean {
 export interface SkinHubFrameOptions {
   /** Optional camera side (guns default left). */
   side?: 'left' | 'right' | 'muzzle' | 'stock' | 'top' | 'bottom'
+  /** Turntable auto-spin. Default false (manual orbit only). */
+  autorotate?: boolean
 }
 
 /**
@@ -176,8 +178,8 @@ export function buildSkinHubFrameUrl(
     params.set('seed', String(Math.floor(skin.paintSeed)))
   }
 
-  // Manual orbit: autorotate fights drag and drops pitch — keep it off.
-  params.set('autorotate', '0')
+  // Manual orbit by default; autorotate is opt-in via UI toggle.
+  params.set('autorotate', opts.autorotate ? '1' : '0')
   params.set('orbit', '1')
   params.set('wheel', '1')
   params.set('hdrispin', '0')
