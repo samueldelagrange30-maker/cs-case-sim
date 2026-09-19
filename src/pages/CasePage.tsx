@@ -1,10 +1,16 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { OpenOverlay } from '../components/OpenOverlay'
 import { ResultCard } from '../components/ResultCard'
-import { Roulette } from '../components/Roulette'
 import { useCrate } from '../hooks/useCrate'
 import { typeLabel } from '../lib/crateTypes'
-import { crateHasWear, groupByTier, oddsBlurb, openMultiple, TIER_META } from '../lib/odds'
+import {
+  crateHasWear,
+  groupByTier,
+  oddsBlurb,
+  openMultiple,
+  TIER_META,
+} from '../lib/odds'
 import type { OpenedSkin, RarityTier } from '../types'
 
 const TIER_ORDER: RarityTier[] = [
@@ -33,6 +39,11 @@ export function CasePage({ onOpened }: Props) {
   const [pending, setPending] = useState<OpenedSkin[]>([])
   const [lastResults, setLastResults] = useState<OpenedSkin[]>([])
 
+  const pendingRef = useRef<OpenedSkin[]>([])
+  const addedRef = useRef(false)
+  const onOpenedRef = useRef(onOpened)
+  onOpenedRef.current = onOpened
+
   const groups = useMemo(
     () => (caseData ? groupByTier(caseData) : null),
     [caseData],
@@ -42,6 +53,8 @@ export function CasePage({ onOpened }: Props) {
     (n: number) => {
       if (!caseData || phase === 'spinning') return
       const skins = openMultiple(caseData, n)
+      pendingRef.current = skins
+      addedRef.current = false
       setPending(skins)
       setLastResults([])
       setPhase('spinning')
@@ -49,16 +62,35 @@ export function CasePage({ onOpened }: Props) {
     [caseData, phase],
   )
 
-  const handleSpinDone = useCallback(() => {
-    setLastResults(pending)
-    onOpened(pending)
+  /** Inventory add exactly once with the skins that were spun. */
+  const commitOpened = useCallback(() => {
+    const skins = pendingRef.current
+    if (!addedRef.current && skins.length > 0) {
+      addedRef.current = true
+      onOpenedRef.current(skins)
+    }
+    setLastResults(skins)
+    setPending([])
+    pendingRef.current = skins
     setPhase('results')
-  }, [onOpened, pending])
+  }, [])
+
+  const handleOverlayDone = useCallback(() => {
+    commitOpened()
+  }, [commitOpened])
+
+  const handleReopenOne = useCallback(() => {
+    if (!caseData) return
+    const skins = openMultiple(caseData, 1)
+    pendingRef.current = skins
+    addedRef.current = false
+    setPending(skins)
+    setLastResults([])
+    setPhase('spinning')
+  }, [caseData])
 
   if (loading) {
-    return (
-      <p className="text-center text-muted py-20">Chargement…</p>
-    )
+    return <p className="text-center text-muted py-20">Chargement…</p>
   }
 
   if (error || !caseData || !groups) {
@@ -134,10 +166,11 @@ export function CasePage({ onOpened }: Props) {
       </div>
 
       {phase === 'spinning' && pending.length > 0 && (
-        <Roulette
+        <OpenOverlay
           caseData={caseData}
           winners={pending}
-          onDone={handleSpinDone}
+          onDone={handleOverlayDone}
+          onReopenOne={handleReopenOne}
         />
       )}
 
