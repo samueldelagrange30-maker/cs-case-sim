@@ -39,6 +39,9 @@ function normalize(raw: Partial<OpenedSkin> & { item: OpenedSkin['item'] }): Ope
     isRareSpecial: !!raw.isRareSpecial,
     openedAt: raw.openedAt ?? Date.now(),
     stickers: normalizeStickers(raw.stickers),
+    collections: Array.isArray(raw.collections)
+      ? raw.collections.filter((x): x is string => typeof x === 'string')
+      : undefined,
   }
 }
 

@@ -10,7 +10,7 @@ export function Header({
   walletBalance: number
 }) {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `px-3 py-1.5 rounded-md text-sm font-medium transition ${
+    `px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition ${
       isActive
         ? 'bg-accent/20 text-accent'
         : 'text-muted hover:text-text hover:bg-panel-2'
@@ -39,9 +39,15 @@ export function Header({
           >
             {formatSim(walletBalance)}
           </span>
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-0.5 sm:gap-1 flex-wrap justify-end">
             <NavLink to="/" end className={linkClass}>
               Caisses
+            </NavLink>
+            <NavLink to="/collection" className={linkClass}>
+              Collection
+            </NavLink>
+            <NavLink to="/tradeup" className={linkClass}>
+              Trade-up
             </NavLink>
             <NavLink to="/market" className={linkClass}>
               Marché

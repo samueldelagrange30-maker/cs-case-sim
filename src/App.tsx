@@ -1,30 +1,94 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { Header } from './components/Header'
 import { InspectModal } from './components/inspect/InspectModal'
 import { useCases } from './hooks/useCases'
 import { useInventory } from './hooks/useInventory'
 import { useMarket } from './hooks/useMarket'
+import { useStats } from './hooks/useStats'
 import { useWallet } from './hooks/useWallet'
+import {
+  countCompletedAlbums,
+  evaluateChallenges,
+} from './lib/challenges'
+import {
+  loadCollections,
+  loadSkinCollectionsMap,
+  type CollectionAlbum,
+} from './lib/collections'
 import { CasePage } from './pages/CasePage'
+import { CollectionPage } from './pages/CollectionPage'
 import { HomePage } from './pages/HomePage'
 import { InventoryPage } from './pages/InventoryPage'
 import { MarketListingPage } from './pages/MarketListingPage'
 import { MarketPage } from './pages/MarketPage'
+import { TradeUpPage } from './pages/TradeUpPage'
 import type { AuctionListing, OpenedSkin } from './types'
 import { formatSim } from './lib/pricing'
 
 export default function App() {
   const { cases, loading, error } = useCases()
-  const { items, addItems, clear, count, removeFromInventory } = useInventory()
+  const { items, addItems, clear, count, removeFromInventory, removeMany } =
+    useInventory()
   const { balance, credit, debit } = useWallet()
+  const {
+    stats,
+    completedBadges,
+    incrementOpens,
+    incrementTradeUps,
+    incrementMarketSold,
+    markBadgesCompleted,
+  } = useStats()
   const navigate = useNavigate()
+
+  const [albums, setAlbums] = useState<CollectionAlbum[]>([])
+  const [albumsLoading, setAlbumsLoading] = useState(true)
+  const skinMapRef = useRef<Record<string, string[]> | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([loadCollections(), loadSkinCollectionsMap()])
+      .then(([cols, map]) => {
+        if (cancelled) return
+        setAlbums(cols)
+        skinMapRef.current = map
+        setAlbumsLoading(false)
+      })
+      .catch(() => {
+        if (!cancelled) setAlbumsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const enrichSkins = useCallback((skins: OpenedSkin[]): OpenedSkin[] => {
+    const map = skinMapRef.current
+    if (!map) return skins
+    return skins.map((s) => {
+      if (s.collections && s.collections.length > 0) return s
+      const cols = map[s.item.name]
+      return cols ? { ...s, collections: cols } : s
+    })
+  }, [])
+
+  const handleOpened = useCallback(
+    (skins: OpenedSkin[]) => {
+      const enriched = enrichSkins(skins)
+      addItems(enriched)
+      incrementOpens(enriched.length)
+    },
+    [addItems, enrichSkins, incrementOpens],
+  )
 
   const market = useMarket({
     creditWallet: credit,
     tryDebitWallet: debit,
     onSoldToYou: (listing) => {
-      addItems([listing.skin])
+      addItems(enrichSkins([listing.skin]))
+    },
+    onUserListingSold: () => {
+      incrementMarketSold(1)
     },
     onExpiredReturn: (skin) => {
       addItems([skin])
@@ -43,6 +107,44 @@ export default function App() {
     setFlash(msg)
     window.setTimeout(() => setFlash(null), 3200)
   }, [])
+
+  const handleBadgesUnlocked = useCallback(
+    (ids: string[], titles: string[]) => {
+      markBadgesCompleted(ids)
+      if (titles.length === 1) {
+        showFlash(`Badge débloqué : ${titles[0]}`)
+      } else if (titles.length > 1) {
+        showFlash(`Badges débloqués : ${titles.join(', ')}`)
+      }
+    },
+    [markBadgesCompleted, showFlash],
+  )
+
+  // Global badge check (opens, inventory, trade-ups, market, albums)
+  useEffect(() => {
+    if (albumsLoading) return
+    const albumsCompleted = countCompletedAlbums(albums, items)
+    const rows = evaluateChallenges({
+      stats,
+      inventory: items,
+      albumsCompleted,
+    })
+    const newly = rows.filter(
+      (r) => r.completed && !completedBadges.includes(r.def.id),
+    )
+    if (newly.length === 0) return
+    handleBadgesUnlocked(
+      newly.map((r) => r.def.id),
+      newly.map((r) => r.def.title),
+    )
+  }, [
+    albums,
+    albumsLoading,
+    items,
+    stats,
+    completedBadges,
+    handleBadgesUnlocked,
+  ])
 
   const handleListForSale = useCallback(
     (
@@ -68,6 +170,23 @@ export default function App() {
       navigate('/market')
     },
     [removeFromInventory, market, navigate, showFlash],
+  )
+
+  const handleTradeUp = useCallback(
+    (inputs: OpenedSkin[], result: OpenedSkin) => {
+      const removed = removeMany(inputs.map((s) => s.uid))
+      if (removed.length !== 10) {
+        showFlash('Impossible de consommer les 10 skins.')
+        // put back if partial
+        if (removed.length > 0) addItems(removed)
+        return
+      }
+      const enriched = enrichSkins([result])
+      addItems(enriched)
+      incrementTradeUps(1)
+      showFlash('Trade-up réussi — résultat ajouté à l’inventaire.')
+    },
+    [removeMany, addItems, enrichSkins, incrementTradeUps, showFlash],
   )
 
   const openBidModal = (listing: AuctionListing) => {
@@ -136,7 +255,28 @@ export default function App() {
             <Route
               path="/case/:id"
               element={
-                <CasePage onOpened={addItems} sales={market.sales} />
+                <CasePage onOpened={handleOpened} sales={market.sales} />
+              }
+            />
+            <Route
+              path="/collection"
+              element={
+                <CollectionPage
+                  inventory={items}
+                  stats={stats}
+                  completedBadges={completedBadges}
+                />
+              }
+            />
+            <Route
+              path="/tradeup"
+              element={
+                <TradeUpPage
+                  inventory={items}
+                  albums={albums}
+                  albumsLoading={albumsLoading}
+                  onTradeUp={handleTradeUp}
+                />
               }
             />
             <Route

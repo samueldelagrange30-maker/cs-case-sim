@@ -80,6 +80,8 @@ export interface OpenedSkin {
   openedAt: number
   /** Applied stickers (max 5 slots). Normalized to [] on load. */
   stickers?: AppliedSticker[]
+  /** Collection ids this skin belongs to (for trade-up / albums). */
+  collections?: string[]
 }
 
 export type RarityTier =

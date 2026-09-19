@@ -52,6 +52,26 @@ export function useInventory() {
     [],
   )
 
+
+  const removeMany = useCallback((uids: string[]): OpenedSkin[] => {
+    const want = new Set(uids)
+    const current = loadInventory()
+    const removed: OpenedSkin[] = []
+    const next: OpenedSkin[] = []
+    for (const item of current) {
+      if (want.has(item.uid)) {
+        removed.push(item)
+        want.delete(item.uid)
+      } else {
+        next.push(item)
+      }
+    }
+    if (removed.length === 0) return []
+    saveInventory(next)
+    setItems(next)
+    return removed
+  }, [])
+
   const clear = useCallback(() => {
     clearInventoryStorage()
     setItems([])
@@ -63,6 +83,7 @@ export function useInventory() {
     clear,
     count: items.length,
     removeFromInventory,
+    removeMany,
     updateSkin,
   }
 }
