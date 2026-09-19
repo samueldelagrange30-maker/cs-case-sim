@@ -8,12 +8,14 @@ Simulateur **gratuit** d'ouverture de caisses d'armes Counter-Strike (CS2 / CS:G
 
 Site public (GitHub Pages) : https://samueldelagrange30-maker.github.io/cs-case-sim/
 
+Déploiement : branche `gh-pages` (build statique `dist/`).
+
 ## Fonctionnalités
 
 - Grille de 42 caisses d'armes avec recherche
 - Page caisse : contenu par rareté, ouverture ×1 / ×5 / ×10
 - Roulette animée style CS
-- Probabilités approximatives officielles (Mil-Spec, Restricted, Classified, Covert, Rare Special)
+- Probabilités approximatives officielles (Mil-Spec 79,92 % · Restricted 15,98 % · Classified 3,2 % · Covert 0,64 % · Rare Special 0,26 %)
 - Usure FN/MW/FT/WW/BS + float, StatTrak™ (~10 %)
 - Inventaire local (`localStorage`)
 
