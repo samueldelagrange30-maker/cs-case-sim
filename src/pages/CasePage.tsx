@@ -5,7 +5,6 @@ import { ResultCard } from '../components/ResultCard'
 import { InspectModal } from '../components/inspect/InspectModal'
 import { useCrate } from '../hooks/useCrate'
 import { typeLabel } from '../lib/crateTypes'
-import { isSticker } from '../lib/stickers'
 import {
   crateHasWear,
   groupByTier,
@@ -13,7 +12,7 @@ import {
   openMultiple,
   TIER_META,
 } from '../lib/odds'
-import type { OpenedSkin, RarityTier } from '../types'
+import type { OpenedSkin, RarityTier, SaleRecord } from '../types'
 
 const TIER_ORDER: RarityTier[] = [
   'consumer',
@@ -27,21 +26,12 @@ const TIER_ORDER: RarityTier[] = [
 
 interface Props {
   onOpened: (skins: OpenedSkin[]) => void
-  inventory?: OpenedSkin[]
-  onApplySticker?: (
-    weaponUid: string,
-    stickerUid: string,
-    slot: number,
-  ) => { ok: boolean; error?: string; weapon?: OpenedSkin }
-  onRemoveSticker?: (
-    weaponUid: string,
-    slot: number,
-  ) => { ok: boolean; error?: string; weapon?: OpenedSkin }
+  sales?: SaleRecord[]
 }
 
 type Phase = 'idle' | 'spinning' | 'results'
 
-export function CasePage({ onOpened, inventory = [], onApplySticker, onRemoveSticker }: Props) {
+export function CasePage({ onOpened, sales = [] }: Props) {
   const { id } = useParams()
   const { crate: caseData, loading, error } = useCrate(
     id ? decodeURIComponent(id) : undefined,
@@ -256,15 +246,9 @@ export function CasePage({ onOpened, inventory = [], onApplySticker, onRemoveSti
 
       {inspectSkin && (
         <InspectModal
-          skin={
-            inventory.find((i) => i.uid === inspectSkin.uid) ?? inspectSkin
-          }
+          skin={inspectSkin}
           onClose={() => setInspectSkin(null)}
-          editable={inventory.some((i) => i.uid === inspectSkin.uid)}
-          stickerInventory={inventory.filter(isSticker)}
-          onApplySticker={onApplySticker}
-          onRemoveSticker={onRemoveSticker}
-          onSkinUpdated={setInspectSkin}
+          sales={sales}
         />
       )}
     </div>

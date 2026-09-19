@@ -216,7 +216,7 @@ export function MarketListingPage({
       </section>
 
       <SalesChart
-        title={`Historique des ventes finales — ${chartName}`}
+        title={`Historique des ventes — ${chartName}`}
         points={salePoints}
         height={160}
       />
