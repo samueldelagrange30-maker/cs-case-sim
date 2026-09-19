@@ -18,6 +18,7 @@ export const TYPE_FILTERS: TypeFilter[] = [
   { key: 'Pins', label: 'Pins', type: 'Pins' },
   { key: 'Graffiti', label: 'Graffiti', type: 'Graffiti' },
   { key: 'Souvenir Highlight', label: 'Highlights', type: 'Souvenir Highlight' },
+  { key: 'Admin', label: 'ADMIN', type: 'Admin' },
 ]
 
 export function typeLabel(type: CrateType): string {

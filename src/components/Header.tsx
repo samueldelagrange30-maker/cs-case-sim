@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { Disclaimer } from './Disclaimer'
 import { formatSim } from '../lib/pricing'
+import { isSfxMuted, resumeAudio, setSfxMuted } from '../lib/sfx'
 
 export function Header({
   inventoryCount,
@@ -16,6 +18,19 @@ export function Header({
   /** Countdown string e.g. "4:32", or null when full */
   nextChargeLabel: string | null
 }) {
+  const [muted, setMuted] = useState(() => isSfxMuted())
+
+  useEffect(() => {
+    setMuted(isSfxMuted())
+  }, [])
+
+  const toggleSon = () => {
+    const next = !muted
+    setSfxMuted(next)
+    setMuted(next)
+    if (!next) void resumeAudio()
+  }
+
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition ${
       isActive
@@ -56,6 +71,15 @@ export function Header({
           </div>
         </Link>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleSon}
+            className="inline-flex items-center rounded-full border border-border bg-panel px-2.5 py-1 text-xs font-semibold text-muted hover:text-text hover:border-accent/50 transition"
+            title={muted ? 'Activer le son' : 'Couper le son'}
+            aria-pressed={!muted}
+          >
+            Son {muted ? 'OFF' : 'ON'}
+          </button>
           <span className="hidden sm:inline-flex">{chargesBadge}</span>
           <span
             className="hidden sm:inline-flex items-center rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent font-mono"

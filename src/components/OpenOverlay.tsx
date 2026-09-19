@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import type { Crate, OpenedSkin } from '../types'
 import {
   buildRouletteStrip,
@@ -6,6 +6,12 @@ import {
   rarityColor,
   TIER_META,
 } from '../lib/odds'
+import {
+  playRevealSfx,
+  playSpinTick,
+  rarityToSfxTier,
+  resumeAudio,
+} from '../lib/sfx'
 import { ResultCard } from './ResultCard'
 
 const ITEM_W = 170
@@ -14,7 +20,7 @@ const SLOT = ITEM_W + GAP
 const CARD_H = 190
 const WINNER_INDEX = 42
 const STRIP_LEN = 50
-const REVEAL_MS = 950
+const REVEAL_MS = 1100
 const EASING = 'cubic-bezier(0.12, 0.75, 0.08, 1)'
 
 interface Props {
@@ -29,6 +35,31 @@ interface Props {
 
 type UiPhase = 'spin' | 'reveal' | 'results'
 
+function isGoldTier(skin: OpenedSkin): boolean {
+  if (skin.isRareSpecial) return true
+  const id = skin.item.rarity.id
+  const name = skin.item.rarity.name.toLowerCase()
+  return (
+    id === 'rarity_ancient' ||
+    id.includes('contraband') ||
+    name.includes('extraordinary') ||
+    name.includes('contraband')
+  )
+}
+
+function isCovertPlus(skin: OpenedSkin): boolean {
+  if (skin.isRareSpecial) return true
+  const id = skin.item.rarity.id
+  const name = skin.item.rarity.name.toLowerCase()
+  return (
+    id.includes('ancient') ||
+    id.includes('contraband') ||
+    name.includes('covert') ||
+    name.includes('extraordinary') ||
+    name.includes('contraband')
+  )
+}
+
 export function OpenOverlay({
   caseData,
   winners,
@@ -40,6 +71,9 @@ export function OpenOverlay({
   const [offset, setOffset] = useState(0)
   const [uiPhase, setUiPhase] = useState<UiPhase>('spin')
   const [spinning, setSpinning] = useState(false)
+  const [cinematic, setCinematic] = useState(false)
+  const [shake, setShake] = useState(false)
+  const [confetti, setConfetti] = useState(false)
 
   const viewportRef = useRef<HTMLDivElement>(null)
   const onDoneRef = useRef(onDone)
@@ -53,6 +87,7 @@ export function OpenOverlay({
   winnersLenRef.current = winners.length
   const currentRef = useRef(current)
   currentRef.current = current
+  const lastTickSlot = useRef(-1)
 
   const winner = winners[current]!
   const isMulti = winners.length > 1
@@ -88,6 +123,9 @@ export function OpenOverlay({
   }
 
   const afterReveal = (fromIndex: number) => {
+    setCinematic(false)
+    setShake(false)
+    setConfetti(false)
     if (fromIndex < winnersLenRef.current - 1) {
       setOffset(0)
       setSpinning(false)
@@ -103,18 +141,44 @@ export function OpenOverlay({
     setSpinning(false)
     setOffset(targetRef.current)
     setUiPhase('reveal')
+    setCinematic(true)
+
+    const skin = winners[fromIndex]!
+    const tier = rarityToSfxTier(
+      skin.item.rarity.name,
+      skin.item.rarity.id,
+      skin.isRareSpecial,
+    )
+    playRevealSfx(tier)
+
+    if (isCovertPlus(skin)) setConfetti(true)
+    if (isGoldTier(skin)) setShake(true)
+
+    schedule(() => {
+      setCinematic(false)
+      setShake(false)
+    }, 700)
     schedule(() => afterReveal(fromIndex), REVEAL_MS)
   }
+
+  // Resume audio on mount (user already clicked open on CasePage)
+  useEffect(() => {
+    void resumeAudio()
+  }, [])
 
   // Only re-run when the active winner changes — never when onDone identity changes.
   useEffect(() => {
     clearTimers()
     const token = ++spinTokenRef.current
     const fromIndex = current
+    lastTickSlot.current = -1
 
     setUiPhase('spin')
     setOffset(0)
     setSpinning(false)
+    setCinematic(false)
+    setShake(false)
+    setConfetti(false)
 
     const raf0 = requestAnimationFrame(() => {
       if (spinTokenRef.current !== token) return
@@ -143,6 +207,28 @@ export function OpenOverlay({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [winner.uid, current])
+
+  // Light tick SFX while spinning (approx once per slot crossed)
+  useEffect(() => {
+    if (!spinning || uiPhase !== 'spin') return
+    const start = performance.now()
+    const duration = spinDurationRef.current
+    let raf = 0
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration)
+      // ease-out approx matching cubic-bezier
+      const eased = 1 - Math.pow(1 - p, 3)
+      const slot = Math.floor(eased * WINNER_INDEX)
+      if (slot !== lastTickSlot.current && slot < WINNER_INDEX) {
+        lastTickSlot.current = slot
+        // quieter toward the end
+        playSpinTick(0.05 * (1 - p * 0.7))
+      }
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [spinning, uiPhase, winner.uid])
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -188,14 +274,48 @@ export function OpenOverlay({
   }
 
   const color = rarityColor(winner)
+  const punch = uiPhase === 'reveal'
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-[#05070b]/95 backdrop-blur-sm"
+      className={`fixed inset-0 z-50 flex flex-col bg-[#05070b]/95 backdrop-blur-sm ${
+        shake ? 'sfx-shake' : ''
+      }`}
       role="dialog"
       aria-modal="true"
       aria-label="Ouverture de caisse"
     >
+      {cinematic && (
+        <div
+          className="pointer-events-none absolute inset-0 z-30 sfx-flash"
+          style={
+            {
+              '--sfx-color': color,
+            } as CSSProperties
+          }
+          aria-hidden
+        />
+      )}
+
+      {confetti && uiPhase === 'reveal' && (
+        <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden" aria-hidden>
+          {Array.from({ length: 28 }).map((_, i) => (
+            <span
+              key={i}
+              className="sfx-confetti"
+              style={
+                {
+                  left: `${(i * 37) % 100}%`,
+                  animationDelay: `${(i % 8) * 0.04}s`,
+                  background:
+                    i % 3 === 0 ? color : i % 3 === 1 ? '#ffd700' : '#fff',
+                } as CSSProperties
+              }
+            />
+          ))}
+        </div>
+      )}
+
       <button
         type="button"
         className="absolute inset-0 cursor-default"
@@ -268,7 +388,9 @@ export function OpenOverlay({
                   return (
                     <div
                       key={`${winner.uid}-${i}`}
-                      className="shrink-0 flex flex-col items-center justify-center rounded-xl border bg-panel-2"
+                      className={`shrink-0 flex flex-col items-center justify-center rounded-xl border bg-panel-2 ${
+                        isWinnerSlot ? 'sfx-punch' : ''
+                      }`}
                       style={{
                         width: ITEM_W,
                         height: CARD_H,
@@ -276,7 +398,7 @@ export function OpenOverlay({
                         boxShadow: isWinnerSlot
                           ? `0 0 28px ${c}aa, inset 0 -4px 0 ${c}`
                           : `inset 0 -3px 0 ${c}, 0 0 12px ${c}22`,
-                        transform: isWinnerSlot ? 'scale(1.04)' : undefined,
+                        transform: isWinnerSlot ? 'scale(1.08)' : undefined,
                       }}
                     >
                       <img
@@ -296,7 +418,9 @@ export function OpenOverlay({
 
             {uiPhase === 'reveal' && (
               <div
-                className="mx-auto max-w-md w-full px-4 text-center space-y-2"
+                className={`mx-auto max-w-md w-full px-4 text-center space-y-2 ${
+                  punch ? 'sfx-punch' : ''
+                }`}
                 style={{ filter: `drop-shadow(0 0 24px ${color}66)` }}
               >
                 <div

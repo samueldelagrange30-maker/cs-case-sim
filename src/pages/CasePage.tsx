@@ -12,6 +12,7 @@ import {
   openMultiple,
   TIER_META,
 } from '../lib/odds'
+import { resumeAudio } from '../lib/sfx'
 import type { OpenedSkin, RarityTier, SaleRecord } from '../types'
 
 const TIER_ORDER: RarityTier[] = [
@@ -59,6 +60,7 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
       if (!caseData || phase === 'spinning') return
       if (charges < n) return
       if (!tryConsume(n)) return
+      void resumeAudio()
       const skins = openMultiple(caseData, n)
       pendingRef.current = skins
       addedRef.current = false
