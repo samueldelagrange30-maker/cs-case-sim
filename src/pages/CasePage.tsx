@@ -27,11 +27,13 @@ const TIER_ORDER: RarityTier[] = [
 interface Props {
   onOpened: (skins: OpenedSkin[]) => void
   sales?: SaleRecord[]
+  charges: number
+  tryConsume: (n: number) => boolean
 }
 
 type Phase = 'idle' | 'spinning' | 'results'
 
-export function CasePage({ onOpened, sales = [] }: Props) {
+export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
   const { id } = useParams()
   const { crate: caseData, loading, error } = useCrate(
     id ? decodeURIComponent(id) : undefined,
@@ -55,6 +57,8 @@ export function CasePage({ onOpened, sales = [] }: Props) {
   const startOpen = useCallback(
     (n: number) => {
       if (!caseData || phase === 'spinning') return
+      if (charges < n) return
+      if (!tryConsume(n)) return
       const skins = openMultiple(caseData, n)
       pendingRef.current = skins
       addedRef.current = false
@@ -62,7 +66,7 @@ export function CasePage({ onOpened, sales = [] }: Props) {
       setLastResults([])
       setPhase('spinning')
     },
-    [caseData, phase],
+    [caseData, phase, charges, tryConsume],
   )
 
   /** Inventory add exactly once with the skins that were spun. */
@@ -84,13 +88,15 @@ export function CasePage({ onOpened, sales = [] }: Props) {
 
   const handleReopenOne = useCallback(() => {
     if (!caseData) return
+    if (charges < 1) return
+    if (!tryConsume(1)) return
     const skins = openMultiple(caseData, 1)
     pendingRef.current = skins
     addedRef.current = false
     setPending(skins)
     setLastResults([])
     setPhase('spinning')
-  }, [caseData])
+  }, [caseData, charges, tryConsume])
 
   if (loading) {
     return <p className="text-center text-muted py-20">Chargement…</p>
@@ -142,7 +148,7 @@ export function CasePage({ onOpened, sales = [] }: Props) {
           <div className="flex flex-wrap justify-center md:justify-start gap-2 pt-2">
             <button
               type="button"
-              disabled={phase === 'spinning'}
+              disabled={phase === 'spinning' || charges < 1}
               onClick={() => startOpen(1)}
               className="rounded-lg bg-accent text-bg font-bold px-5 py-2.5 text-sm hover:brightness-110 disabled:opacity-50 transition shadow-lg shadow-accent/20"
             >
@@ -150,7 +156,7 @@ export function CasePage({ onOpened, sales = [] }: Props) {
             </button>
             <button
               type="button"
-              disabled={phase === 'spinning'}
+              disabled={phase === 'spinning' || charges < 5}
               onClick={() => startOpen(5)}
               className="rounded-lg border border-accent/60 bg-accent/10 text-accent font-semibold px-4 py-2.5 text-sm hover:bg-accent/20 disabled:opacity-50 transition"
             >
@@ -158,13 +164,24 @@ export function CasePage({ onOpened, sales = [] }: Props) {
             </button>
             <button
               type="button"
-              disabled={phase === 'spinning'}
+              disabled={phase === 'spinning' || charges < 10}
               onClick={() => startOpen(10)}
               className="rounded-lg border border-accent/60 bg-accent/10 text-accent font-semibold px-4 py-2.5 text-sm hover:bg-accent/20 disabled:opacity-50 transition"
             >
               Ouvrir ×10
             </button>
           </div>
+          {charges < 1 ? (
+            <p className="text-xs text-covert pt-1">
+              Pas assez d’ouvertures — attendez la prochaine charge (1 toutes les
+              10 min).
+            </p>
+          ) : charges < 10 ? (
+            <p className="text-xs text-muted pt-1">
+              Ouvertures disponibles : {charges}/10 — ×5 et ×10 nécessitent
+              assez de charges.
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -173,7 +190,7 @@ export function CasePage({ onOpened, sales = [] }: Props) {
           caseData={caseData}
           winners={pending}
           onDone={handleOverlayDone}
-          onReopenOne={handleReopenOne}
+          onReopenOne={charges >= 1 ? handleReopenOne : undefined}
           onInspect={setInspectSkin}
         />
       )}

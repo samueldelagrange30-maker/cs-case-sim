@@ -6,6 +6,7 @@ import { useCases } from './hooks/useCases'
 import { useInventory } from './hooks/useInventory'
 import { useMarket } from './hooks/useMarket'
 import { useStats } from './hooks/useStats'
+import { useCharges } from './hooks/useCharges'
 import { useWallet } from './hooks/useWallet'
 import {
   countCompletedAlbums,
@@ -31,6 +32,12 @@ export default function App() {
   const { items, addItems, clear, count, removeFromInventory, removeMany } =
     useInventory()
   const { balance, credit, debit } = useWallet()
+  const {
+    charges,
+    maxCharges,
+    nextLabel,
+    tryConsume: tryConsumeCharges,
+  } = useCharges()
   const {
     stats,
     completedBadges,
@@ -232,7 +239,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header inventoryCount={count} walletBalance={balance} />
+      <Header
+        inventoryCount={count}
+        walletBalance={balance}
+        charges={charges}
+        maxCharges={maxCharges}
+        nextChargeLabel={nextLabel}
+      />
       {flash && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] rounded-lg border border-accent/40 bg-panel px-4 py-2.5 text-sm text-center shadow-lg">
           {flash}
@@ -255,7 +268,12 @@ export default function App() {
             <Route
               path="/case/:id"
               element={
-                <CasePage onOpened={handleOpened} sales={market.sales} />
+                <CasePage
+                  onOpened={handleOpened}
+                  sales={market.sales}
+                  charges={charges}
+                  tryConsume={tryConsumeCharges}
+                />
               }
             />
             <Route

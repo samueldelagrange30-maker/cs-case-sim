@@ -5,9 +5,16 @@ import { formatSim } from '../lib/pricing'
 export function Header({
   inventoryCount,
   walletBalance,
+  charges,
+  maxCharges,
+  nextChargeLabel,
 }: {
   inventoryCount: number
   walletBalance: number
+  charges: number
+  maxCharges: number
+  /** Countdown string e.g. "4:32", or null when full */
+  nextChargeLabel: string | null
 }) {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition ${
@@ -15,6 +22,22 @@ export function Header({
         ? 'bg-accent/20 text-accent'
         : 'text-muted hover:text-text hover:bg-panel-2'
     }`
+
+  const chargesBadge = (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent"
+      title="Charges d’ouverture — +1 toutes les 10 min (max 10)"
+    >
+      <span className="font-mono">
+        Ouvertures {charges}/{maxCharges}
+      </span>
+      {nextChargeLabel && (
+        <span className="text-[10px] font-normal text-muted whitespace-nowrap">
+          Prochaine dans {nextChargeLabel}
+        </span>
+      )}
+    </span>
+  )
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur-md">
@@ -33,6 +56,7 @@ export function Header({
           </div>
         </Link>
         <div className="flex items-center gap-2">
+          <span className="hidden sm:inline-flex">{chargesBadge}</span>
           <span
             className="hidden sm:inline-flex items-center rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent font-mono"
             title="Portefeuille simulé — pas d’argent réel"
@@ -63,7 +87,8 @@ export function Header({
           </nav>
         </div>
       </div>
-      <div className="sm:hidden border-t border-border/40 px-4 py-1 flex justify-center">
+      <div className="sm:hidden border-t border-border/40 px-4 py-1.5 flex flex-wrap justify-center gap-2">
+        {chargesBadge}
         <span className="inline-flex items-center rounded-full border border-accent/40 bg-accent/10 px-2.5 py-0.5 text-[11px] font-semibold text-accent font-mono">
           {formatSim(walletBalance)}
         </span>
