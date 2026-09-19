@@ -1,0 +1,196 @@
+import { useCallback, useMemo, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { ResultCard } from '../components/ResultCard'
+import { Roulette } from '../components/Roulette'
+import { groupByTier, openMultiple, TIER_META } from '../lib/odds'
+import type { OpenedSkin, RarityTier, WeaponCase } from '../types'
+
+const TIER_ORDER: RarityTier[] = [
+  'milspec',
+  'restricted',
+  'classified',
+  'covert',
+  'rare',
+]
+
+interface Props {
+  cases: WeaponCase[]
+  onOpened: (skins: OpenedSkin[]) => void
+}
+
+type Phase = 'idle' | 'spinning' | 'results'
+
+export function CasePage({ cases, onOpened }: Props) {
+  const { id } = useParams()
+  const caseData = useMemo(
+    () => cases.find((c) => c.id === id),
+    [cases, id],
+  )
+
+  const [phase, setPhase] = useState<Phase>('idle')
+  const [pending, setPending] = useState<OpenedSkin[]>([])
+  const [lastResults, setLastResults] = useState<OpenedSkin[]>([])
+
+  const groups = useMemo(
+    () => (caseData ? groupByTier(caseData) : null),
+    [caseData],
+  )
+
+  const startOpen = useCallback(
+    (n: number) => {
+      if (!caseData || phase === 'spinning') return
+      const skins = openMultiple(caseData, n)
+      setPending(skins)
+      setLastResults([])
+      setPhase('spinning')
+    },
+    [caseData, phase],
+  )
+
+  const handleSpinDone = useCallback(() => {
+    setLastResults(pending)
+    onOpened(pending)
+    setPhase('results')
+  }, [onOpened, pending])
+
+  if (!caseData || !groups) {
+    return (
+      <div className="text-center py-20 space-y-4">
+        <p className="text-muted">Caisse introuvable.</p>
+        <Link to="/" className="text-accent hover:underline">
+          ← Retour aux caisses
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <Link
+          to="/"
+          className="text-sm text-muted hover:text-accent transition"
+        >
+          ← Toutes les caisses
+        </Link>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
+        <div className="w-40 h-40 sm:w-48 sm:h-48 shrink-0 flex items-center justify-center rounded-2xl border border-border bg-panel p-4">
+          <img
+            src={caseData.image}
+            alt={caseData.name}
+            className="max-h-full max-w-full object-contain"
+          />
+        </div>
+        <div className="flex-1 text-center md:text-left space-y-3">
+          <h1 className="text-2xl sm:text-3xl font-bold">{caseData.name}</h1>
+          <p className="text-sm text-muted">
+            Probabilités approx. : Mil-Spec 79,92% · Restricted 15,98% ·
+            Classified 3,2% · Covert 0,64% · Rare Special 0,26%
+          </p>
+          <div className="flex flex-wrap justify-center md:justify-start gap-2 pt-2">
+            <button
+              type="button"
+              disabled={phase === 'spinning'}
+              onClick={() => startOpen(1)}
+              className="rounded-lg bg-accent text-bg font-bold px-5 py-2.5 text-sm hover:brightness-110 disabled:opacity-50 transition shadow-lg shadow-accent/20"
+            >
+              Ouvrir ×1
+            </button>
+            <button
+              type="button"
+              disabled={phase === 'spinning'}
+              onClick={() => startOpen(5)}
+              className="rounded-lg border border-accent/60 bg-accent/10 text-accent font-semibold px-4 py-2.5 text-sm hover:bg-accent/20 disabled:opacity-50 transition"
+            >
+              Ouvrir ×5
+            </button>
+            <button
+              type="button"
+              disabled={phase === 'spinning'}
+              onClick={() => startOpen(10)}
+              className="rounded-lg border border-accent/60 bg-accent/10 text-accent font-semibold px-4 py-2.5 text-sm hover:bg-accent/20 disabled:opacity-50 transition"
+            >
+              Ouvrir ×10
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {phase === 'spinning' && pending.length > 0 && (
+        <Roulette
+          caseData={caseData}
+          winners={pending}
+          onDone={handleSpinDone}
+        />
+      )}
+
+      {phase === 'results' && lastResults.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">
+            Résultat{lastResults.length > 1 ? 's' : ''}
+          </h2>
+          <div className="grid gap-3">
+            {lastResults.map((s) => (
+              <ResultCard key={s.uid} skin={s} />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setPhase('idle')}
+            className="text-sm text-muted hover:text-accent"
+          >
+            Fermer les résultats
+          </button>
+        </div>
+      )}
+
+      <section className="space-y-6">
+        <h2 className="text-xl font-semibold border-b border-border pb-2">
+          Contenu de la caisse
+        </h2>
+        {TIER_ORDER.map((tier) => {
+          const items = groups[tier]
+          if (!items.length) return null
+          const meta = TIER_META[tier]
+          return (
+            <div key={tier} className="space-y-3">
+              <h3
+                className="text-sm font-bold uppercase tracking-wider"
+                style={{ color: meta.color }}
+              >
+                {meta.label}{' '}
+                <span className="text-muted font-normal normal-case">
+                  ({items.length})
+                </span>
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border bg-panel p-2 flex flex-col items-center"
+                    style={{
+                      borderColor: `${meta.color}55`,
+                      boxShadow: `inset 0 -2px 0 ${meta.color}`,
+                    }}
+                  >
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      loading="lazy"
+                      className="h-20 w-20 object-contain"
+                    />
+                    <p className="mt-1 text-[11px] text-center line-clamp-2 text-muted">
+                      {item.name}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </section>
+    </div>
+  )
+}
