@@ -1,12 +1,24 @@
+import { useState } from 'react'
 import { InventoryList } from '../components/InventoryList'
+import { ListForSaleModal } from '../components/market/ListForSaleModal'
 import type { OpenedSkin } from '../types'
 
 interface Props {
   items: OpenedSkin[]
   onClear: () => void
+  onListForSale: (
+    skin: OpenedSkin,
+    opts: {
+      startPrice: number
+      buyoutPrice?: number
+      durationMinutes: number
+    },
+  ) => void
 }
 
-export function InventoryPage({ items, onClear }: Props) {
+export function InventoryPage({ items, onClear, onListForSale }: Props) {
+  const [listingSkin, setListingSkin] = useState<OpenedSkin | null>(null)
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -29,7 +41,18 @@ export function InventoryPage({ items, onClear }: Props) {
           </button>
         )}
       </div>
-      <InventoryList items={items} />
+      <InventoryList items={items} onListForSale={setListingSkin} />
+
+      {listingSkin && (
+        <ListForSaleModal
+          skin={listingSkin}
+          onClose={() => setListingSkin(null)}
+          onConfirm={(opts) => {
+            onListForSale(listingSkin, opts)
+            setListingSkin(null)
+          }}
+        />
+      )}
     </div>
   )
 }

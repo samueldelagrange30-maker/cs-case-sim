@@ -1,7 +1,14 @@
 import { Link, NavLink } from 'react-router-dom'
 import { Disclaimer } from './Disclaimer'
+import { formatSim } from '../lib/pricing'
 
-export function Header({ inventoryCount }: { inventoryCount: number }) {
+export function Header({
+  inventoryCount,
+  walletBalance,
+}: {
+  inventoryCount: number
+  walletBalance: number
+}) {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `px-3 py-1.5 rounded-md text-sm font-medium transition ${
       isActive
@@ -25,19 +32,35 @@ export function Header({ inventoryCount }: { inventoryCount: number }) {
             </div>
           </div>
         </Link>
-        <nav className="flex items-center gap-1">
-          <NavLink to="/" end className={linkClass}>
-            Caisses
-          </NavLink>
-          <NavLink to="/inventory" className={linkClass}>
-            Inventaire
-            {inventoryCount > 0 && (
-              <span className="ml-1.5 inline-flex min-w-[1.25rem] justify-center rounded-full bg-accent/25 px-1.5 text-[11px] text-accent">
-                {inventoryCount}
-              </span>
-            )}
-          </NavLink>
-        </nav>
+        <div className="flex items-center gap-2">
+          <span
+            className="hidden sm:inline-flex items-center rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent font-mono"
+            title="Portefeuille simulé — pas d’argent réel"
+          >
+            {formatSim(walletBalance)}
+          </span>
+          <nav className="flex items-center gap-1">
+            <NavLink to="/" end className={linkClass}>
+              Caisses
+            </NavLink>
+            <NavLink to="/market" className={linkClass}>
+              Marché
+            </NavLink>
+            <NavLink to="/inventory" className={linkClass}>
+              Inventaire
+              {inventoryCount > 0 && (
+                <span className="ml-1.5 inline-flex min-w-[1.25rem] justify-center rounded-full bg-accent/25 px-1.5 text-[11px] text-accent">
+                  {inventoryCount}
+                </span>
+              )}
+            </NavLink>
+          </nav>
+        </div>
+      </div>
+      <div className="sm:hidden border-t border-border/40 px-4 py-1 flex justify-center">
+        <span className="inline-flex items-center rounded-full border border-accent/40 bg-accent/10 px-2.5 py-0.5 text-[11px] font-semibold text-accent font-mono">
+          {formatSim(walletBalance)}
+        </span>
       </div>
       <div className="border-t border-border/60 px-4 py-1.5">
         <Disclaimer compact />

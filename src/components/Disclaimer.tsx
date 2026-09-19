@@ -7,8 +7,8 @@ export function Disclaimer({ compact = false }: { compact?: boolean }) {
           : 'text-center text-xs sm:text-sm text-muted bg-panel/80 border border-border rounded-lg px-3 py-2'
       }
     >
-      Simulateur gratuit — aucun skin réel, aucun argent réel. Non affilié à
-      Valve / Steam / Counter-Strike.
+      Simulateur gratuit — aucun skin réel, aucun argent réel. Marché aux
+      enchères simulé ($SIM). Non affilié à Valve / Steam / Counter-Strike.
     </p>
   )
 }

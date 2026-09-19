@@ -77,3 +77,46 @@ export type RarityTier =
   | 'classified'
   | 'covert'
   | 'rare'
+
+/** Bid on an auction listing. */
+export interface AuctionBid {
+  at: number
+  amount: number
+  bidder: string
+}
+
+export type AuctionStatus = 'active' | 'sold' | 'expired' | 'cancelled'
+
+/** Marketplace auction listing (client-only simulation). */
+export interface AuctionListing {
+  id: string
+  skin: OpenedSkin
+  seller: 'you' | string
+  startPrice: number
+  buyoutPrice?: number
+  currentBid: number
+  currentBidder: string | null
+  createdAt: number
+  endsAt: number
+  status: AuctionStatus
+  bids: AuctionBid[]
+  soldAt?: number
+  soldPrice?: number
+  /** Hidden fair value used by bot bidding (not shown in UI). */
+  fairValue: number
+  /** Bot seller listings are synthetic seed / bot inventory. */
+  isBotListing: boolean
+  /** True after wallet/inventory side-effects applied. */
+  settled?: boolean
+}
+
+/** Derived sale for market history / price curves. */
+export interface SaleRecord {
+  itemName: string
+  rarity: string
+  soldPrice: number
+  soldAt: number
+  listingId: string
+}
+
+export const SIM_CURRENCY = '$SIM'

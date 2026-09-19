@@ -19,6 +19,7 @@ Déploiement : branche `gh-pages` (build statique `dist/`).
 - Probabilités approx. officielles pour les caisses d'armes ; poids style capsule pour les autres types
 - Usure FN/MW/FT/WW/BS + float pour skins ; N/A pour stickers / graffiti / pins / patches / music kits
 - Inventaire local (`localStorage`)
+- **Marché aux enchères simulé** ($SIM) : mise en vente, bots, courbe de prix
 
 ## Lancer en local
 

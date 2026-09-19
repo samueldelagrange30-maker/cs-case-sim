@@ -1,7 +1,12 @@
 import type { OpenedSkin } from '../types'
 import { displayName, rarityColor } from '../lib/odds'
 
-export function InventoryList({ items }: { items: OpenedSkin[] }) {
+interface Props {
+  items: OpenedSkin[]
+  onListForSale?: (skin: OpenedSkin) => void
+}
+
+export function InventoryList({ items, onListForSale }: Props) {
   if (items.length === 0) {
     return (
       <p className="text-center text-muted py-12">
@@ -17,7 +22,7 @@ export function InventoryList({ items }: { items: OpenedSkin[] }) {
         return (
           <li
             key={skin.uid}
-            className="rounded-lg border bg-panel overflow-hidden"
+            className="rounded-lg border bg-panel overflow-hidden flex flex-col"
             style={{
               borderColor: `${color}88`,
               boxShadow: `inset 0 -2px 0 ${color}`,
@@ -31,7 +36,7 @@ export function InventoryList({ items }: { items: OpenedSkin[] }) {
                 loading="lazy"
               />
             </div>
-            <div className="p-2 space-y-0.5">
+            <div className="p-2 space-y-0.5 flex-1 flex flex-col">
               <p className="text-[10px] font-semibold" style={{ color }}>
                 {skin.isRareSpecial ? '★ Rare' : skin.item.rarity.name}
                 {skin.isStatTrak ? ' · ST' : ''}
@@ -44,6 +49,15 @@ export function InventoryList({ items }: { items: OpenedSkin[] }) {
                   ? `${skin.wear} · ${skin.float.toFixed(4)}`
                   : 'N/A'}
               </p>
+              {onListForSale && (
+                <button
+                  type="button"
+                  onClick={() => onListForSale(skin)}
+                  className="mt-auto w-full rounded-md bg-accent/15 text-accent text-[11px] font-semibold py-1.5 hover:bg-accent/25 transition"
+                >
+                  Mettre en vente
+                </button>
+              )}
             </div>
           </li>
         )
