@@ -166,43 +166,16 @@ export function Inspect3DModal({
             style={{ borderColor: `${color}66` }}
           >
             <div className="h-[min(52vh,420px)] w-full">
-              <SkinMeshViewer skin={skin} onTainted={setTainted} />
+              <SkinMeshViewer
+                skin={skin}
+                onTainted={setTainted}
+                onHtmlFallback={setTainted}
+              />
             </div>
-            {tainted && (
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                <div
-                  className="relative w-[70%] max-w-md aspect-[2/1] rounded-lg border bg-[#0a0d12]/40"
-                  style={{
-                    borderColor: `${color}88`,
-                    transform: 'perspective(800px) rotateY(-8deg)',
-                  }}
-                >
-                  <img
-                    src={skin.item.image}
-                    alt=""
-                    className="absolute inset-0 m-auto max-h-[85%] max-w-[90%] object-contain opacity-90"
-                  />
-                  {stickers.map((st) => {
-                    const left = 12 + (st.slot / 4) * 70
-                    return (
-                      <img
-                        key={st.uid + st.slot}
-                        src={st.item.image}
-                        alt=""
-                        className="absolute w-10 h-10 object-contain drop-shadow"
-                        style={{
-                          left: `${left}%`,
-                          top: '58%',
-                          transform: `translate(-50%, -50%) rotate(${(st.slot - 2) * 8}deg)`,
-                        }}
-                      />
-                    )
-                  })}
-                </div>
-              </div>
-            )}
             <p className="absolute bottom-2 left-3 text-[10px] text-muted/80">
-              Glisser pour tourner · molette pour zoomer
+              {tainted
+                ? 'Glisser pour tourner la carte'
+                : 'Glisser pour tourner · molette pour zoomer'}
             </p>
           </div>
 
