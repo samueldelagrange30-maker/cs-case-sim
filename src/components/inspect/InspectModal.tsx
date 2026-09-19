@@ -96,7 +96,12 @@ export function InspectModal({ skin, onClose, sales = [] }: Props) {
             style={{ borderColor: `${color}66` }}
           >
             {showIframe ? (
-              <div className="relative min-h-[360px] h-[min(52vh,440px)] bg-[#07090d]">
+              <div
+                className="relative min-h-[420px] h-[min(62vh,520px)] bg-[#07090d] overscroll-contain"
+                style={{ touchAction: 'none' }}
+                onWheel={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+              >
                 <div className="absolute top-3 left-3 z-[2] flex items-center gap-2 pointer-events-none">
                   <span className="rounded-md bg-black/70 border border-white/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white/90">
                     360°
@@ -117,21 +122,21 @@ export function InspectModal({ skin, onClose, sales = [] }: Props) {
                   key={frameUrl}
                   src={frameUrl}
                   title="Aperçu 360°"
-                  allow="fullscreen"
+                  allow="fullscreen; pointer-lock"
                   referrerPolicy="strict-origin-when-cross-origin"
                   className="absolute inset-0 h-full w-full border-0 bg-transparent"
+                  style={{ touchAction: 'none' }}
                   onLoad={() => setIframeLoaded(true)}
                   onError={() => setIframeFailed(true)}
                 />
                 <p className="absolute bottom-2 left-0 right-0 z-[2] pointer-events-none text-center text-[10px] sm:text-[11px] text-white/55 drop-shadow">
-                  Glisser pour tourner · molette pour zoomer
+                  Clic gauche : tourner · clic droit : déplacer · molette : zoomer
                 </p>
-                {/* Tiny 2D thumbnail corner for reference */}
                 <img
                   src={skin.item.image}
                   alt=""
                   aria-hidden
-                  className="absolute bottom-3 right-3 z-[2] h-12 w-12 sm:h-14 sm:w-14 object-contain rounded-md border border-white/10 bg-black/50 p-1 opacity-80"
+                  className="pointer-events-none absolute bottom-3 right-3 z-[2] h-12 w-12 sm:h-14 sm:w-14 object-contain rounded-md border border-white/10 bg-black/50 p-1 opacity-80"
                 />
               </div>
             ) : (

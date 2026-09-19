@@ -176,9 +176,11 @@ export function buildSkinHubFrameUrl(
     params.set('seed', String(Math.floor(skin.paintSeed)))
   }
 
-  params.set('autorotate', '1')
+  // Manual orbit: autorotate fights drag and drops pitch — keep it off.
+  params.set('autorotate', '0')
   params.set('orbit', '1')
   params.set('wheel', '1')
+  params.set('hdrispin', '0')
   params.set('bg', 'transparent')
   params.set('hostloading', '1')
   params.set('map', 'none')
