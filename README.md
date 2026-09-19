@@ -20,7 +20,7 @@ Déploiement : branche `gh-pages` (build statique `dist/`).
 - Usure FN/MW/FT/WW/BS + float pour skins ; N/A pour stickers / graffiti / pins / patches / music kits
 - Inventaire local (`localStorage`)
 - **Marché aux enchères simulé** ($SIM) : mise en vente, bots, courbe de prix
-- **Inspection 3D** (Three.js) : rotation / zoom sur les skins
+- **Inspection 3D** (Three.js) : silhouettes d’armes **procédurales** (low-poly, pas de modèles Valve) + skin Steam en texture + stickers en décalques
 - **Stickers** : appliquer jusqu’à 5 stickers sur une arme (consommés depuis l’inventaire) ; visibles sur le marché
 
 ## Lancer en local
