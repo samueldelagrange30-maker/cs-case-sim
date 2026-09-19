@@ -12,6 +12,7 @@ import {
   openMultiple,
   TIER_META,
 } from '../lib/odds'
+import { CHARGES_ENABLED } from '../lib/charges'
 import { resumeAudio } from '../lib/sfx'
 import type { OpenedSkin, RarityTier, SaleRecord } from '../types'
 
@@ -58,8 +59,10 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
   const startOpen = useCallback(
     (n: number) => {
       if (!caseData || phase === 'spinning') return
-      if (charges < n) return
-      if (!tryConsume(n)) return
+      if (CHARGES_ENABLED) {
+        if (charges < n) return
+        if (!tryConsume(n)) return
+      }
       void resumeAudio()
       const skins = openMultiple(caseData, n)
       pendingRef.current = skins
@@ -90,8 +93,10 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
 
   const handleReopenOne = useCallback(() => {
     if (!caseData) return
-    if (charges < 1) return
-    if (!tryConsume(1)) return
+    if (CHARGES_ENABLED) {
+      if (charges < 1) return
+      if (!tryConsume(1)) return
+    }
     const skins = openMultiple(caseData, 1)
     pendingRef.current = skins
     addedRef.current = false
@@ -150,7 +155,7 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
           <div className="flex flex-wrap justify-center md:justify-start gap-2 pt-2">
             <button
               type="button"
-              disabled={phase === 'spinning' || charges < 1}
+              disabled={phase === 'spinning' || (CHARGES_ENABLED && charges < 1)}
               onClick={() => startOpen(1)}
               className="rounded-lg bg-accent text-bg font-bold px-5 py-2.5 text-sm hover:brightness-110 disabled:opacity-50 transition shadow-lg shadow-accent/20"
             >
@@ -158,7 +163,7 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
             </button>
             <button
               type="button"
-              disabled={phase === 'spinning' || charges < 5}
+              disabled={phase === 'spinning' || (CHARGES_ENABLED && charges < 5)}
               onClick={() => startOpen(5)}
               className="rounded-lg border border-accent/60 bg-accent/10 text-accent font-semibold px-4 py-2.5 text-sm hover:bg-accent/20 disabled:opacity-50 transition"
             >
@@ -166,19 +171,19 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
             </button>
             <button
               type="button"
-              disabled={phase === 'spinning' || charges < 10}
+              disabled={phase === 'spinning' || (CHARGES_ENABLED && charges < 10)}
               onClick={() => startOpen(10)}
               className="rounded-lg border border-accent/60 bg-accent/10 text-accent font-semibold px-4 py-2.5 text-sm hover:bg-accent/20 disabled:opacity-50 transition"
             >
               Ouvrir ×10
             </button>
           </div>
-          {charges < 1 ? (
+          {CHARGES_ENABLED && charges < 1 ? (
             <p className="text-xs text-covert pt-1">
               Pas assez d’ouvertures — attendez la prochaine charge (1 toutes les
               10 min).
             </p>
-          ) : charges < 10 ? (
+          ) : CHARGES_ENABLED && charges < 10 ? (
             <p className="text-xs text-muted pt-1">
               Ouvertures disponibles : {charges}/10 — ×5 et ×10 nécessitent
               assez de charges.
@@ -192,7 +197,7 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
           caseData={caseData}
           winners={pending}
           onDone={handleOverlayDone}
-          onReopenOne={charges >= 1 ? handleReopenOne : undefined}
+          onReopenOne={!CHARGES_ENABLED || charges >= 1 ? handleReopenOne : undefined}
           onInspect={setInspectSkin}
         />
       )}

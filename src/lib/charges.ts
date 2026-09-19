@@ -1,5 +1,8 @@
 const KEY = 'cs-case-sim-charges-v1'
 
+/** Flip to true to re-enable open-charge gating / Header UI. */
+export const CHARGES_ENABLED = false
+
 export const MAX_CHARGES = 10
 export const REGEN_MS = 10 * 60 * 1000 // 10 minutes
 
@@ -114,6 +117,7 @@ export function tryConsumeCharges(
   n: number,
   now: number = Date.now(),
 ): boolean {
+  if (!CHARGES_ENABLED) return true
   if (!Number.isFinite(n) || n <= 0) return false
   const need = Math.floor(n)
   const current = loadCharges(now)

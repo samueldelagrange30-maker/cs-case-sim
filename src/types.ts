@@ -48,7 +48,6 @@ export type CrateType =
   | 'Pins'
   | 'Graffiti'
   | 'Souvenir Highlight'
-  | 'Admin'
 
 /** @deprecated Use Crate — kept as alias for compatibility. */
 export type WeaponCase = Crate

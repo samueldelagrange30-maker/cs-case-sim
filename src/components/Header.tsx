@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { Disclaimer } from './Disclaimer'
+import { CHARGES_ENABLED } from '../lib/charges'
 import { formatSim } from '../lib/pricing'
 import { isSfxMuted, resumeAudio, setSfxMuted } from '../lib/sfx'
 
@@ -38,7 +39,7 @@ export function Header({
         : 'text-muted hover:text-text hover:bg-panel-2'
     }`
 
-  const chargesBadge = (
+  const chargesBadge = CHARGES_ENABLED ? (
     <span
       className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent"
       title="Charges d’ouverture — +1 toutes les 10 min (max 10)"
@@ -52,7 +53,7 @@ export function Header({
         </span>
       )}
     </span>
-  )
+  ) : null
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur-md">
@@ -80,7 +81,9 @@ export function Header({
           >
             Son {muted ? 'OFF' : 'ON'}
           </button>
-          <span className="hidden sm:inline-flex">{chargesBadge}</span>
+          {chargesBadge && (
+            <span className="hidden sm:inline-flex">{chargesBadge}</span>
+          )}
           <span
             className="hidden sm:inline-flex items-center rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent font-mono"
             title="Portefeuille simulé — pas d’argent réel"

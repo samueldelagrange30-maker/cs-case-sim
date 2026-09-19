@@ -84,11 +84,6 @@ export const TIER_META: Record<
   rare: { label: 'Rare Special', color: '#ffd700', short: '★' },
 }
 
-
-export function isAdminCrate(c: Pick<Crate, 'id' | 'type'>): boolean {
-  return c.type === 'Admin' || c.id.startsWith('admin-')
-}
-
 export function crateHasWear(type: CrateType): boolean {
   return !NO_WEAR_TYPES.has(type)
 }
@@ -195,32 +190,6 @@ function uid(): string {
 }
 
 export function openCase(c: Crate): OpenedSkin {
-  // Admin crates: uniform among contains only (no rare special pool).
-  if (isAdminCrate(c) && c.contains.length > 0) {
-    const item = pickUniform(c.contains)
-    const hasWear = true
-    const float = sampleFloat()
-    const wear = floatToWear(float)
-    const alreadyST = nameHasStatTrak(item.name)
-    const isRareSpecial = false
-    const isStatTrak = alreadyST || canRollStatTrak(item, c, false)
-    return {
-      uid: uid(),
-      caseId: c.id,
-      caseName: c.name,
-      crateType: c.type,
-      item,
-      wear: wear.key,
-      wearLabel: wear.label,
-      float: Number(float.toFixed(8)),
-      hasWear,
-      isStatTrak,
-      isRareSpecial,
-      openedAt: Date.now(),
-      stickers: [],
-    }
-  }
-
   const groups = groupByTier(c)
   const available = (Object.keys(groups) as RarityTier[]).filter(
     (t) => groups[t].length > 0,
@@ -298,9 +267,6 @@ export function rarityColor(skin: OpenedSkin): string {
 
 /** Human-readable odds blurb for the case page. */
 export function oddsBlurb(c: Crate): string {
-  if (isAdminCrate(c)) {
-    return `Probabilités ADMIN : uniforme parmi ${c.contains.length} skin(s) de cette rareté (100%).`
-  }
   if (c.type === 'Case') {
     return 'Probabilités approx. : Mil-Spec 79,92% · Restricted 15,98% · Classified 3,2% · Covert 0,64% · Rare Special 0,26%'
   }

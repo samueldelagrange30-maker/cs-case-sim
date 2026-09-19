@@ -7,11 +7,6 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
   const [q, setQ] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | CrateType>('all')
 
-  const adminCases = useMemo(
-    () => cases.filter((c) => c.type === 'Admin' || c.id.startsWith('admin-')),
-    [cases],
-  )
-
   const counts = useMemo(() => {
     const map = new Map<'all' | CrateType, number>()
     map.set('all', cases.length)
@@ -27,9 +22,6 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
     let list = cases
     if (typeFilter !== 'all') {
       list = list.filter((c) => c.type === typeFilter)
-    } else {
-      // Keep ADMIN out of the main "Toutes" grid — shown in dedicated section
-      list = list.filter((c) => c.type !== 'Admin' && !c.id.startsWith('admin-'))
     }
     const s = q.trim().toLowerCase()
     if (!s) return list
@@ -39,19 +31,6 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
         c.market_hash_name.toLowerCase().includes(s),
     )
   }, [cases, q, typeFilter])
-
-  const filteredAdmin = useMemo(() => {
-    const s = q.trim().toLowerCase()
-    if (!s) return adminCases
-    return adminCases.filter(
-      (c) =>
-        c.name.toLowerCase().includes(s) ||
-        c.market_hash_name.toLowerCase().includes(s),
-    )
-  }, [adminCases, q])
-
-  const showAdminSection =
-    typeFilter === 'all' || typeFilter === 'Admin'
 
   return (
     <div className="space-y-6">
@@ -98,37 +77,14 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
         })}
       </div>
 
-      {showAdminSection && filteredAdmin.length > 0 && (
-        <section className="space-y-3 rounded-xl border border-accent/30 bg-accent/5 p-4">
-          <div>
-            <h2 className="text-lg font-bold text-accent">
-              Caisses ADMIN — une rareté pure
-            </h2>
-            <p className="text-xs text-muted mt-0.5">
-              Contenu synthétique : 100 % d&apos;une seule rareté · odds
-              uniformes · consomme des charges comme les caisses normales
-            </p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
-            {filteredAdmin.map((c) => (
-              <CaseCard key={c.id} c={c} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {typeFilter !== 'Admin' && (
-        <>
-          {filtered.length === 0 ? (
-            <p className="text-center text-muted py-16">Aucun résultat.</p>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
-              {filtered.map((c) => (
-                <CaseCard key={c.id} c={c} />
-              ))}
-            </div>
-          )}
-        </>
+      {filtered.length === 0 ? (
+        <p className="text-center text-muted py-16">Aucun résultat.</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+          {filtered.map((c) => (
+            <CaseCard key={c.id} c={c} />
+          ))}
+        </div>
       )}
     </div>
   )
