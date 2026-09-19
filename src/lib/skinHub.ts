@@ -1,6 +1,7 @@
 import type { CrateType, OpenedSkin } from '../types'
 
 const FRAME_BASE = 'https://skinhub.gg/frame'
+const PAGE_BASE = 'https://skinhub.gg/inspect'
 
 /** Display-name (left of "|") → SkinHub weapon / glove id. */
 const WEAPON_NAME_TO_ID: Record<string, string> = {
@@ -141,22 +142,25 @@ export function canUseSkinHubViewer(skin: OpenedSkin): boolean {
   return false
 }
 
+export type SkinHubView = 'gun' | 'hands' | 'agent'
+
 export interface SkinHubFrameOptions {
+  /** Camera / scene view. Default 'gun'. */
+  view?: SkinHubView
   /** Optional camera side (guns default left). */
   side?: 'left' | 'right' | 'muzzle' | 'stock' | 'top' | 'bottom'
   /** Turntable auto-spin. Default false (manual orbit only). */
   autorotate?: boolean
+  /** Agent model id when view=agent. Default 5036 (Default T). */
+  agent?: string
 }
 
-/**
- * Build https://skinhub.gg/frame URL.
- * Prefers weapon+paint when both known; otherwise hash=baseMarketName.
- */
-export function buildSkinHubFrameUrl(
+/** Shared weapon/paint/hash + float/seed (+ view/agent) query params. */
+function appendItemParams(
+  params: URLSearchParams,
   skin: OpenedSkin,
   opts: SkinHubFrameOptions = {},
-): string {
-  const params = new URLSearchParams()
+): void {
   const weapon = weaponKeyFromSkinName(skin.item.name)
   const paintRaw = skin.item.paint_index
   const paint =
@@ -178,6 +182,24 @@ export function buildSkinHubFrameUrl(
     params.set('seed', String(Math.floor(skin.paintSeed)))
   }
 
+  const view = opts.view ?? 'gun'
+  params.set('view', view)
+  if (view === 'agent' && !params.has('agent')) {
+    params.set('agent', opts.agent ?? '5036')
+  }
+}
+
+/**
+ * Build https://skinhub.gg/frame URL.
+ * Prefers weapon+paint when both known; otherwise hash=baseMarketName.
+ */
+export function buildSkinHubFrameUrl(
+  skin: OpenedSkin,
+  opts: SkinHubFrameOptions = {},
+): string {
+  const params = new URLSearchParams()
+  appendItemParams(params, skin, opts)
+
   // Manual orbit by default; autorotate is opt-in via UI toggle.
   params.set('autorotate', opts.autorotate ? '1' : '0')
   params.set('orbit', '1')
@@ -190,6 +212,19 @@ export function buildSkinHubFrameUrl(
   if (opts.side) params.set('side', opts.side)
 
   return `${FRAME_BASE}?${params.toString()}`
+}
+
+/**
+ * Build https://skinhub.gg/inspect page URL for the same item (opens in new tab).
+ * Same weapon/paint OR hash + float/seed/view as the frame embed.
+ */
+export function buildSkinHubPageUrl(
+  skin: OpenedSkin,
+  opts: SkinHubFrameOptions = {},
+): string {
+  const params = new URLSearchParams()
+  appendItemParams(params, skin, opts)
+  return `${PAGE_BASE}?${params.toString()}`
 }
 
 /** Build a transient OpenedSkin so catalog / case-contents items can open InspectModal. */

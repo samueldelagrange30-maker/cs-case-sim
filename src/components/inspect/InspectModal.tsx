@@ -5,7 +5,9 @@ import { normalizeItemName } from '../../lib/pricing'
 import { getStickers, MAX_STICKER_SLOTS } from '../../lib/stickers'
 import {
   buildSkinHubFrameUrl,
+  buildSkinHubPageUrl,
   canUseSkinHubViewer,
+  type SkinHubView,
 } from '../../lib/skinHub'
 import { SalesChart } from '../market/SalesChart'
 
@@ -19,17 +21,28 @@ interface Props {
 /** Horizontal positions (%) for sticker slots overlaid on the weapon image. */
 const SLOT_LEFT_PCT = [12, 28, 44, 60, 76]
 
+const VIEW_SEGMENTS: { id: SkinHubView; label: string }[] = [
+  { id: 'gun', label: 'Arme' },
+  { id: 'hands', label: 'Mains' },
+  { id: 'agent', label: 'Agent' },
+]
+
 export function InspectModal({ skin, onClose, sales = [] }: Props) {
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [iframeFailed, setIframeFailed] = useState(false)
   const [autorotate, setAutorotate] = useState(false)
+  const [view, setView] = useState<SkinHubView>('gun')
   const use3d = canUseSkinHubViewer(skin)
   const frameUrl = useMemo(
     () =>
       use3d
-        ? buildSkinHubFrameUrl(skin, { side: 'left', autorotate })
+        ? buildSkinHubFrameUrl(skin, { side: 'left', autorotate, view })
         : '',
-    [skin, use3d, autorotate],
+    [skin, use3d, autorotate, view],
+  )
+  const pageUrl = useMemo(
+    () => (use3d ? buildSkinHubPageUrl(skin, { view }) : ''),
+    [skin, use3d, view],
   )
 
   useEffect(() => {
@@ -39,6 +52,7 @@ export function InspectModal({ skin, onClose, sales = [] }: Props) {
 
   useEffect(() => {
     setAutorotate(false)
+    setView('gun')
   }, [skin.uid])
 
   useEffect(() => {
@@ -111,28 +125,60 @@ export function InspectModal({ skin, onClose, sales = [] }: Props) {
                 onTouchMove={(e) => e.stopPropagation()}
               >
                 <div className="absolute top-3 left-3 right-3 z-[2] flex items-center justify-between gap-2 pointer-events-none">
-                  <span className="rounded-md bg-black/70 border border-white/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white/90">
-                    360°
-                  </span>
-                  <button
-                    type="button"
-                    className={`pointer-events-auto rounded-md border px-2.5 py-1 text-[11px] font-semibold transition ${
-                      autorotate
-                        ? 'border-accent/70 bg-accent/20 text-accent'
-                        : 'border-white/20 bg-black/70 text-white/80 hover:border-white/40'
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setAutorotate((v) => !v)
-                    }}
-                    title={
-                      autorotate
-                        ? 'Désactiver la rotation automatique'
-                        : 'Activer la rotation automatique'
-                    }
+                  <a
+                    href={pageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="pointer-events-auto rounded-md bg-black/70 border border-white/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white/90 hover:border-accent/60 hover:text-accent transition"
+                    title="Ouvrir sur SkinHub"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    {autorotate ? 'Auto 360° : ON' : 'Auto 360° : OFF'}
-                  </button>
+                    360°
+                  </a>
+                  <div className="pointer-events-auto flex items-center gap-1.5">
+                    <div
+                      className="flex rounded-md border border-white/20 bg-black/70 overflow-hidden"
+                      role="group"
+                      aria-label="Vue SkinHub"
+                    >
+                      {VIEW_SEGMENTS.map((seg) => (
+                        <button
+                          key={seg.id}
+                          type="button"
+                          className={`px-2 py-1 text-[11px] font-semibold transition ${
+                            view === seg.id
+                              ? 'border-accent/70 bg-accent/20 text-accent'
+                              : 'text-white/80 hover:bg-white/10'
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setView(seg.id)
+                          }}
+                        >
+                          {seg.label}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold transition ${
+                        autorotate
+                          ? 'border-accent/70 bg-accent/20 text-accent'
+                          : 'border-white/20 bg-black/70 text-white/80 hover:border-white/40'
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setAutorotate((v) => !v)
+                      }}
+                      title={
+                        autorotate
+                          ? 'Désactiver la rotation automatique'
+                          : 'Activer la rotation automatique'
+                      }
+                    >
+                      {autorotate ? 'Auto 360° : ON' : 'Auto 360° : OFF'}
+                    </button>
+                  </div>
                 </div>
                 {!iframeLoaded && (
                   <div
