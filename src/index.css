@@ -86,3 +86,18 @@ body {
   animation: sfx-confetti-kf 1.1s ease-in forwards;
   opacity: 0.9;
 }
+
+/* ---- Landing / auth ambiance ---- */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float-slow {
+  animation: float-y 7s ease-in-out infinite;
+}
+.animate-float-med {
+  animation: float-y 5.5s ease-in-out infinite;
+}
+.animate-float-fast {
+  animation: float-y 4.2s ease-in-out infinite;
+}

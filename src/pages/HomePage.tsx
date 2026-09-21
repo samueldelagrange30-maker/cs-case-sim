@@ -1,16 +1,23 @@
 import { useMemo, useState } from 'react'
 import { CaseCard } from '../components/CaseCard'
 import { TYPE_FILTERS } from '../lib/crateTypes'
+import {
+  compactSearch,
+  crateSearchBlob,
+  normalizeSearch,
+  textMatches,
+} from '../lib/searchNormalize'
 import type { CrateIndexEntry, CrateType } from '../types'
 
 function findContentMatch(
   c: CrateIndexEntry,
-  s: string,
+  queryNorm: string,
+  queryCompact: string,
 ): string | null {
   const names = c.contains_names
   if (!names?.length) return null
   for (const n of names) {
-    if (n.toLowerCase().includes(s)) return n
+    if (textMatches(n, queryNorm, queryCompact)) return n
   }
   return null
 }
@@ -30,30 +37,40 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
     return map
   }, [cases])
 
+  /** Precompute haystacks once per cases load (avoids re-joining on every keystroke). */
+  const searchIndex = useMemo(() => {
+    return cases.map((c) => ({
+      crate: c,
+      blob: crateSearchBlob(c),
+    }))
+  }, [cases])
+
   const filtered = useMemo(() => {
-    let list = cases
+    let list = searchIndex
     if (typeFilter !== 'all') {
-      list = list.filter((c) => c.type === typeFilter)
+      list = list.filter((e) => e.crate.type === typeFilter)
     }
-    const s = q.trim().toLowerCase()
-    if (!s) {
-      return list.map((c) => ({ crate: c, contentMatch: null as string | null }))
+    const queryNorm = normalizeSearch(q)
+    const queryCompact = compactSearch(q)
+    if (!queryNorm) {
+      return list.map((e) => ({
+        crate: e.crate,
+        contentMatch: null as string | null,
+      }))
     }
     const out: { crate: CrateIndexEntry; contentMatch: string | null }[] = []
-    for (const c of list) {
+    for (const { crate, blob } of list) {
+      if (!textMatches(blob, queryNorm, queryCompact)) continue
       const nameHit =
-        c.name.toLowerCase().includes(s) ||
-        c.market_hash_name.toLowerCase().includes(s)
-      const contentMatch = findContentMatch(c, s)
-      if (nameHit || contentMatch) {
-        out.push({
-          crate: c,
-          contentMatch: nameHit ? null : contentMatch,
-        })
-      }
+        textMatches(crate.name, queryNorm, queryCompact) ||
+        textMatches(crate.market_hash_name, queryNorm, queryCompact)
+      const contentMatch = nameHit
+        ? null
+        : findContentMatch(crate, queryNorm, queryCompact)
+      out.push({ crate, contentMatch })
     }
     return out
-  }, [cases, q, typeFilter])
+  }, [searchIndex, q, typeFilter])
 
   return (
     <div className="space-y-6">
@@ -72,8 +89,10 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Caisse ou skin (ex. Asiimov)…"
+            placeholder="Caisse ou arme (ex. Mp7, AK, Asiimov)…"
             className="w-full rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+            autoComplete="off"
+            spellCheck={false}
           />
         </label>
       </div>
