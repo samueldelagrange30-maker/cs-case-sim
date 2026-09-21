@@ -103,7 +103,7 @@ export function LandingPage({ isLoggedIn }: { isLoggedIn: boolean }) {
               Extraordinaires en 360°
             </h2>
             <p className="text-sm text-muted mt-1">
-              Couteaux, gants et Covert cultes — rotation automatique SkinHub.
+              Couteaux, gants et Covert cultes — un aperçu 360° SkinHub à la fois.
             </p>
           </div>
         </div>
