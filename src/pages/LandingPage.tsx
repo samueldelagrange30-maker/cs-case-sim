@@ -4,7 +4,12 @@ import {
   SkinCollage,
   SkinStrip,
 } from '../components/SkinShowcase'
-import { HERO_SKINS, ICONIC_SKINS } from '../lib/iconicSkins'
+import { ExtraordinaryShowcase } from '../components/ExtraordinaryShowcase'
+import {
+  EXTRAORDINARY_360,
+  HERO_SKINS,
+  ICONIC_SKINS,
+} from '../lib/iconicSkins'
 
 const FEATURES = [
   {
@@ -89,6 +94,20 @@ export function LandingPage({ isLoggedIn }: { isLoggedIn: boolean }) {
         <div className="relative z-10 mt-10 md:hidden">
           <SkinStrip skins={HERO_SKINS.slice(0, 6)} />
         </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">
+              Extraordinaires en 360°
+            </h2>
+            <p className="text-sm text-muted mt-1">
+              Couteaux, gants et Covert cultes — rotation automatique SkinHub.
+            </p>
+          </div>
+        </div>
+        <ExtraordinaryShowcase skins={EXTRAORDINARY_360} />
       </section>
 
       <section className="space-y-4">

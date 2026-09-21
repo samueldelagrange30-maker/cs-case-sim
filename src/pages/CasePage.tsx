@@ -124,8 +124,12 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
 
   const showWear = crateHasWear(caseData.type)
 
+  const opening = phase === 'spinning'
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" aria-hidden={opening || undefined}>
+      {/* Hide case chrome under the fullscreen overlay so nothing peeks through on mobile Safari */}
+      <div className={opening ? 'invisible h-0 overflow-hidden pointer-events-none' : undefined}>
       <div>
         <Link
           to="/caisses"
@@ -193,6 +197,7 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
           ) : null}
         </div>
       </div>
+      </div>{/* end hide-while-opening chrome */}
 
       {phase === 'spinning' && pending.length > 0 && (
         <OpenOverlay
@@ -204,7 +209,7 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
         />
       )}
 
-      {phase === 'results' && lastResults.length > 0 && (
+      {!opening && phase === 'results' && lastResults.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">
             Résultat{lastResults.length > 1 ? 's' : ''}
@@ -224,6 +229,7 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
         </div>
       )}
 
+      {!opening && (
       <section className="space-y-6">
         <h2 className="text-xl font-semibold border-b border-border pb-2">
           Contenu
@@ -271,6 +277,8 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
           )
         })}
       </section>
+
+      )}
 
       {inspectSkin && (
         <InspectModal

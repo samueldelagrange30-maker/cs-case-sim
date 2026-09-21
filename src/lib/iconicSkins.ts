@@ -85,3 +85,48 @@ export const ICONIC_SKINS: IconicSkin[] = [
 
 export const HERO_SKINS = ICONIC_SKINS.slice(0, 8)
 export const AUTH_SKINS = ICONIC_SKINS.slice(0, 6)
+
+/** High-tier skins for landing 360° SkinHub embeds (weapon + paint). */
+export interface ExtraordinarySkin {
+  name: string
+  label: string
+  subtitle: string
+  image: string
+  paintIndex: string
+  accent: SkinAccent
+  /** Rarity badge shown under the viewer */
+  rarityLabel: string
+}
+
+export const EXTRAORDINARY_360: ExtraordinarySkin[] = [
+  {
+    name: '★ Karambit | Fade',
+    label: 'Karambit Fade',
+    subtitle: 'Couteau Extraordinaire',
+    image:
+      'https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q7uCvZaZkNM-SD1iWwOpzj-1gSCGn20tztm_UyIn_JHKUbgYlWMcmQ-ZcskSwldS0MOnntAfd3YlMzH35jntXrnE8SOGRGG8',
+    paintIndex: '38',
+    accent: 'rare',
+    rarityLabel: '★ Extraordinaire',
+  },
+  {
+    name: "★ Sport Gloves | Pandora's Box",
+    label: "Pandora's Box",
+    subtitle: 'Gants Extraordinaires',
+    image:
+      'https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk5UvzWCL2kpn2-DFk_OKherB0H-CGHHecxNF6ueZhW2exk01w4j7cmYn4eHPCbAMhApdwTOIN5BPsx9yyYu605FTeid0Uy3j3kGoXueKyz5wo',
+    paintIndex: '10037',
+    accent: 'rare',
+    rarityLabel: '★ Extraordinaire',
+  },
+  {
+    name: 'AWP | Dragon Lore',
+    label: 'Dragon Lore',
+    subtitle: 'Covert emblématique',
+    image:
+      'https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk4veqYaF7IfysCnWRxuF4j-B-Xxa_nBovp3Pdwtj9cC_GaAd0DZdwQu9fuhS4kNy0NePntVTbjYpCyyT_3CgY5i9j_a9cBkcCWUKV',
+    paintIndex: '344',
+    accent: 'covert',
+    rarityLabel: 'Covert',
+  },
+]

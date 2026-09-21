@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import type { Crate, OpenedSkin } from '../types'
 import {
   buildRouletteStrip,
@@ -229,10 +230,16 @@ export function OpenOverlay({
   }, [spinning, uiPhase, winner.uid])
 
   useEffect(() => {
-    const prev = document.body.style.overflow
+    const prevBody = document.body.style.overflow
+    const prevHtml = document.documentElement.style.overflow
+    const prevTouch = document.body.style.touchAction
     document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.touchAction = 'none'
     return () => {
-      document.body.style.overflow = prev
+      document.body.style.overflow = prevBody
+      document.documentElement.style.overflow = prevHtml
+      document.body.style.touchAction = prevTouch
     }
   }, [])
 
@@ -278,11 +285,18 @@ export function OpenOverlay({
   const color = rarityColor(winner)
   const punch = uiPhase === 'reveal'
 
-  return (
+  const overlay = (
     <div
-      className={`fixed inset-0 z-50 flex flex-col bg-[#05070b]/95 backdrop-blur-sm ${
+      className={`fixed inset-0 z-[100] flex flex-col bg-[#05070b] ${
         shake ? 'sfx-shake' : ''
       }`}
+      style={{
+        height: '100dvh',
+        maxHeight: '100dvh',
+        width: '100%',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+      }}
       role="dialog"
       aria-modal="true"
       aria-label="Ouverture de caisse"
@@ -360,11 +374,24 @@ export function OpenOverlay({
         </div>
 
         {uiPhase !== 'results' ? (
-          <div className="pointer-events-auto flex-1 flex flex-col justify-center gap-6 px-0 sm:px-4 pb-8">
+          <div
+            className={`pointer-events-auto flex-1 min-h-0 flex flex-col overflow-hidden px-0 sm:px-4 pb-6 ${
+              uiPhase === 'reveal'
+                ? 'justify-start gap-4 pt-2 sm:justify-center sm:gap-5'
+                : 'justify-center gap-5'
+            }`}
+          >
             <div
               ref={viewportRef}
-              className="relative overflow-hidden w-full border-y border-border bg-[#0a0d12]"
-              style={{ height: CARD_H + 24 }}
+              className={`relative overflow-hidden w-full border-y border-border bg-[#0a0d12] shrink-0 transition-[height,opacity] duration-300 ${
+                uiPhase === 'reveal' ? 'opacity-70 sm:opacity-100' : ''
+              }`}
+              style={{
+                height:
+                  uiPhase === 'reveal'
+                    ? Math.round((CARD_H + 24) * 0.72)
+                    : CARD_H + 24,
+              }}
             >
               <div
                 className="pointer-events-none absolute inset-y-0 left-1/2 z-20 -translate-x-1/2 w-0.5 bg-accent"
@@ -503,4 +530,6 @@ export function OpenOverlay({
       </div>
     </div>
   )
+
+  return createPortal(overlay, document.body)
 }
