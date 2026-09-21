@@ -194,17 +194,16 @@ export function canUseSkinHubViewer(skin: OpenedSkin): boolean {
   return false
 }
 
-export type SkinHubView = 'gun' | 'hands' | 'agent'
+/** Only the weapon (gun) view is used in the UI. */
+export type SkinHubView = 'gun'
 
 export interface SkinHubFrameOptions {
-  /** Camera / scene view. Default 'gun'. */
+  /** Camera / scene view. Always 'gun' in the app. */
   view?: SkinHubView
-  /** Optional camera side — only meaningful for view=gun. */
+  /** Optional camera side for the gun view. */
   side?: 'left' | 'right' | 'muzzle' | 'stock' | 'top' | 'bottom'
   /** Turntable auto-spin. Default false (manual orbit only). */
   autorotate?: boolean
-  /** Agent model id when view=agent. Default 5036 (Default T). */
-  agent?: string
   /** Scene décor (map lighting + bg). Default 'studio'. */
   decor?: SkinHubDecor
 }
@@ -223,7 +222,7 @@ function applyDecorParams(
   }
 }
 
-/** Shared weapon/paint/hash + float/seed (+ view/agent) query params. */
+/** Shared weapon/paint/hash + float/seed + view query params. */
 function appendItemParams(
   params: URLSearchParams,
   skin: OpenedSkin,
@@ -236,8 +235,7 @@ function appendItemParams(
       ? String(Number(paintRaw))
       : null
 
-  // Always prefer weapon + paint when both resolve (agent needs the gun identity).
-  // Never set subject=agent alone — that draws an agent without a weapon.
+  // Prefer weapon + paint when both resolve; otherwise market-name hash.
   if (weapon && paint != null) {
     params.set('weapon', weapon)
     params.set('paint', paint)
@@ -252,13 +250,7 @@ function appendItemParams(
     params.set('seed', String(Math.floor(skin.paintSeed)))
   }
 
-  const view = opts.view ?? 'gun'
-  params.set('view', view)
-
-  // Agent view: always pass agent id with view=agent + weapon + paint.
-  if (view === 'agent') {
-    params.set('agent', opts.agent ?? '5036')
-  }
+  params.set('view', opts.view ?? 'gun')
 }
 
 /**
@@ -272,7 +264,6 @@ export function buildSkinHubFrameUrl(
   const params = new URLSearchParams()
   appendItemParams(params, skin, opts)
 
-  const view = opts.view ?? 'gun'
   const decor = opts.decor ?? 'studio'
 
   // Manual orbit by default; autorotate is opt-in via UI toggle.
@@ -284,8 +275,7 @@ export function buildSkinHubFrameUrl(
 
   applyDecorParams(params, decor)
 
-  // Gun side only for view=gun — side=left confuses hands/agent framing.
-  if (view === 'gun' && opts.side) {
+  if (opts.side) {
     params.set('side', opts.side)
   }
 

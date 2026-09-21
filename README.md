@@ -12,7 +12,7 @@ Déploiement : branche `gh-pages` (build statique `dist/`).
 
 ## Fonctionnalités
 
-- **472** caisses & capsules (filtre par type + recherche)
+- **476** caisses & capsules (dont 46 caisses d’armes / terminaux) (filtre par type + recherche)
 - Types : Caisses, Stickers, Autographes, Souvenirs, Music Kits, Patches, Pins, Graffiti, Highlights
 - Page détail : contenu par rareté, ouverture ×1 / ×5 / ×10
 - Roulette animée style CS

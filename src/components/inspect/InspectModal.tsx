@@ -9,7 +9,6 @@ import {
   canUseSkinHubViewer,
   SKINHUB_DECORS,
   type SkinHubDecor,
-  type SkinHubView,
 } from '../../lib/skinHub'
 import { SalesChart } from '../market/SalesChart'
 
@@ -23,34 +22,27 @@ interface Props {
 /** Horizontal positions (%) for sticker slots overlaid on the weapon image. */
 const SLOT_LEFT_PCT = [12, 28, 44, 60, 76]
 
-const VIEW_SEGMENTS: { id: SkinHubView; label: string }[] = [
-  { id: 'gun', label: 'Arme' },
-  { id: 'hands', label: 'Mains' },
-  { id: 'agent', label: 'Agent' },
-]
-
 export function InspectModal({ skin, onClose, sales = [] }: Props) {
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [iframeFailed, setIframeFailed] = useState(false)
   const [autorotate, setAutorotate] = useState(false)
-  const [view, setView] = useState<SkinHubView>('gun')
   const [decor, setDecor] = useState<SkinHubDecor>('studio')
   const use3d = canUseSkinHubViewer(skin)
   const frameUrl = useMemo(
     () =>
       use3d
         ? buildSkinHubFrameUrl(skin, {
-            ...(view === 'gun' ? { side: 'left' as const } : {}),
+            side: 'left',
             autorotate,
-            view,
+            view: 'gun',
             decor,
           })
         : '',
-    [skin, use3d, autorotate, view, decor],
+    [skin, use3d, autorotate, decor],
   )
   const pageUrl = useMemo(
-    () => (use3d ? buildSkinHubPageUrl(skin, { view, decor }) : ''),
-    [skin, use3d, view, decor],
+    () => (use3d ? buildSkinHubPageUrl(skin, { view: 'gun', decor }) : ''),
+    [skin, use3d, decor],
   )
 
   useEffect(() => {
@@ -60,7 +52,6 @@ export function InspectModal({ skin, onClose, sales = [] }: Props) {
 
   useEffect(() => {
     setAutorotate(false)
-    setView('gun')
     setDecor('studio')
   }, [skin.uid])
 
@@ -145,50 +136,25 @@ export function InspectModal({ skin, onClose, sales = [] }: Props) {
                     360°
                   </a>
                   <div className="pointer-events-auto flex flex-col items-end gap-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <div
-                        className="flex rounded-md border border-white/20 bg-black/70 overflow-hidden"
-                        role="group"
-                        aria-label="Vue SkinHub"
-                      >
-                        {VIEW_SEGMENTS.map((seg) => (
-                          <button
-                            key={seg.id}
-                            type="button"
-                            className={`px-2 py-1 text-[11px] font-semibold transition ${
-                              view === seg.id
-                                ? 'border-accent/70 bg-accent/20 text-accent'
-                                : 'text-white/80 hover:bg-white/10'
-                            }`}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setView(seg.id)
-                            }}
-                          >
-                            {seg.label}
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        type="button"
-                        className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold transition ${
-                          autorotate
-                            ? 'border-accent/70 bg-accent/20 text-accent'
-                            : 'border-white/20 bg-black/70 text-white/80 hover:border-white/40'
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setAutorotate((v) => !v)
-                        }}
-                        title={
-                          autorotate
-                            ? 'Désactiver la rotation automatique'
-                            : 'Activer la rotation automatique'
-                        }
-                      >
-                        {autorotate ? 'Auto 360° : ON' : 'Auto 360° : OFF'}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold transition ${
+                        autorotate
+                          ? 'border-accent/70 bg-accent/20 text-accent'
+                          : 'border-white/20 bg-black/70 text-white/80 hover:border-white/40'
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setAutorotate((v) => !v)
+                      }}
+                      title={
+                        autorotate
+                          ? 'Désactiver la rotation automatique'
+                          : 'Activer la rotation automatique'
+                      }
+                    >
+                      {autorotate ? 'Auto 360° : ON' : 'Auto 360° : OFF'}
+                    </button>
                     <div
                       className="flex rounded-md border border-white/20 bg-black/70 overflow-hidden"
                       role="group"

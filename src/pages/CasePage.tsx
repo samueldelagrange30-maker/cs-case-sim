@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { OpenOverlay } from '../components/OpenOverlay'
+import { SkinRarityCard } from '../components/SkinRarityCard'
 import { ResultCard } from '../components/ResultCard'
 import { InspectModal } from '../components/inspect/InspectModal'
 import { useCrate } from '../hooks/useCrate'
@@ -244,9 +245,13 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                 {items.map((item) => (
-                  <button
-                    type="button"
+                  <SkinRarityCard
                     key={item.id}
+                    item={item}
+                    isRareSpecial={tier === 'rare'}
+                    name={item.name}
+                    image={item.image}
+                    title="Voir en 360°"
                     onClick={() =>
                       setInspectSkin(
                         previewOpenedFromItem(item, caseData, {
@@ -254,26 +259,12 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
                         }),
                       )
                     }
-                    className="rounded-lg border bg-panel p-2 flex flex-col items-center hover:brightness-110 hover:border-accent/50 transition cursor-pointer text-left"
-                    style={{
-                      borderColor: `${meta.color}55`,
-                      boxShadow: `inset 0 -2px 0 ${meta.color}`,
-                    }}
-                    title="Voir en 360°"
-                  >
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      loading="lazy"
-                      className="h-20 w-20 object-contain pointer-events-none"
-                    />
-                    <p className="mt-1 text-[11px] text-center line-clamp-2 text-muted">
-                      {item.name}
-                    </p>
-                    <span className="mt-1 text-[9px] uppercase tracking-wide text-accent/80">
-                      360°
-                    </span>
-                  </button>
+                    footer={
+                      <span className="mt-1 text-[9px] uppercase tracking-wide text-accent/90">
+                        360°
+                      </span>
+                    }
+                  />
                 ))}
               </div>
             </div>
