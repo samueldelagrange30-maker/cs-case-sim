@@ -11,6 +11,7 @@ const WEAPON_NAME_TO_ID: Record<string, string> = {
   FAMAS: 'weapon_famas',
   'Galil AR': 'weapon_galilar',
   'M4A1-S': 'weapon_m4a1_silencer',
+  'M4A1 S': 'weapon_m4a1_silencer',
   M4A4: 'weapon_m4a1',
   'SG 553': 'weapon_sg556',
   // Snipers
@@ -78,6 +79,17 @@ const WEAPON_NAME_TO_ID: Record<string, string> = {
   'Sport Gloves': 'sporty_gloves',
 }
 
+/** Extra aliases normalized before WEAPON_NAME_TO_ID lookup. */
+const WEAPON_ALIASES: Record<string, string> = {
+  'M4A1 S': 'M4A1-S',
+  'M4A1S': 'M4A1-S',
+  'USP S': 'USP-S',
+  USPS: 'USP-S',
+  'CZ75 Auto': 'CZ75-Auto',
+  'CZ75-Auto': 'CZ75-Auto',
+  CZ75: 'CZ75-Auto',
+}
+
 const NON_VIEWER_CRATE_TYPES: CrateType[] = [
   'Sticker Capsule',
   'Autograph Capsule',
@@ -96,12 +108,38 @@ const WEAR_SUFFIX_RE =
  */
 export const SKINHUB_WEAPON_MAP_COUNT = Object.keys(WEAPON_NAME_TO_ID).length
 
-/** Strip StatTrak™ / Souvenir / wear suffix; keep ★ for knives/gloves. */
+export type SkinHubDecor = 'studio' | 'ancient' | 'mirage'
+
+/** Décor presets: map (lighting) + optional bg + time. */
+export const SKINHUB_DECORS: {
+  id: SkinHubDecor
+  label: string
+  params: { map: string; bg: string; time?: string }
+}[] = [
+  { id: 'studio', label: 'Studio', params: { map: 'none', bg: 'transparent' } },
+  {
+    id: 'ancient',
+    label: 'Ancient',
+    params: { map: 'Ancient', bg: 'Ancient', time: 'Night' },
+  },
+  {
+    id: 'mirage',
+    label: 'Mirage',
+    params: { map: 'Mirage', bg: 'Mirage', time: 'Day' },
+  },
+]
+
+const DECOR_BY_ID = Object.fromEntries(
+  SKINHUB_DECORS.map((d) => [d.id, d]),
+) as Record<SkinHubDecor, (typeof SKINHUB_DECORS)[number]>
+
+/** Strip StatTrak™ / Souvenir / wear suffix; keep ★ for knives/gloves (hash). */
 export function baseMarketName(name: string): string {
   let n = name.trim()
-  n = n.replace(/^StatTrak™\s+/i, '')
-  n = n.replace(/^Souvenir\s+/i, '')
   n = n.replace(WEAR_SUFFIX_RE, '')
+  // "★ StatTrak™ Karambit | …" or "StatTrak™ …" — strip ST/Souvenir but keep ★
+  n = n.replace(/^(★\s*)?StatTrak™\s+/i, (_, star) => (star ? '★ ' : ''))
+  n = n.replace(/^(★\s*)?Souvenir\s+/i, (_, star) => (star ? '★ ' : ''))
   return n.trim()
 }
 
@@ -110,12 +148,26 @@ export function baseMarketName(name: string): string {
  * SkinHub weapon id, or null if unknown.
  */
 export function weaponKeyFromSkinName(name: string): string | null {
-  const base = baseMarketName(name)
-  let weaponPart = base.includes('|') ? base.split('|')[0]!.trim() : base.trim()
-  // Keep lookup key without ★; map stores "Karambit" not "★ Karambit"
-  if (weaponPart.startsWith('★')) {
-    weaponPart = weaponPart.slice(1).trim()
+  // Strip ★ / StatTrak™ / Souvenir / wear before splitting on "|"
+  // (order of prefixes varies: "★ StatTrak™ …" vs "StatTrak™ …")
+  let cleaned = name.trim()
+  cleaned = cleaned.replace(WEAR_SUFFIX_RE, '')
+  let prev = ''
+  while (cleaned !== prev) {
+    prev = cleaned
+    cleaned = cleaned.replace(/^★\s*/, '')
+    cleaned = cleaned.replace(/^StatTrak™\s+/i, '')
+    cleaned = cleaned.replace(/^Souvenir\s+/i, '')
+    cleaned = cleaned.trim()
   }
+
+  let weaponPart = cleaned.includes('|')
+    ? cleaned.split('|')[0]!.trim()
+    : cleaned.trim()
+
+  // Alias normalization (e.g. "M4A1 S" → "M4A1-S")
+  weaponPart = WEAPON_ALIASES[weaponPart] ?? weaponPart
+
   return WEAPON_NAME_TO_ID[weaponPart] ?? null
 }
 
@@ -147,12 +199,28 @@ export type SkinHubView = 'gun' | 'hands' | 'agent'
 export interface SkinHubFrameOptions {
   /** Camera / scene view. Default 'gun'. */
   view?: SkinHubView
-  /** Optional camera side (guns default left). */
+  /** Optional camera side — only meaningful for view=gun. */
   side?: 'left' | 'right' | 'muzzle' | 'stock' | 'top' | 'bottom'
   /** Turntable auto-spin. Default false (manual orbit only). */
   autorotate?: boolean
   /** Agent model id when view=agent. Default 5036 (Default T). */
   agent?: string
+  /** Scene décor (map lighting + bg). Default 'studio'. */
+  decor?: SkinHubDecor
+}
+
+function applyDecorParams(
+  params: URLSearchParams,
+  decor: SkinHubDecor,
+): void {
+  const preset = DECOR_BY_ID[decor] ?? DECOR_BY_ID.studio
+  params.set('map', preset.params.map)
+  params.set('bg', preset.params.bg)
+  if (preset.params.time) {
+    params.set('time', preset.params.time)
+  } else {
+    params.delete('time')
+  }
 }
 
 /** Shared weapon/paint/hash + float/seed (+ view/agent) query params. */
@@ -168,6 +236,8 @@ function appendItemParams(
       ? String(Number(paintRaw))
       : null
 
+  // Always prefer weapon + paint when both resolve (agent needs the gun identity).
+  // Never set subject=agent alone — that draws an agent without a weapon.
   if (weapon && paint != null) {
     params.set('weapon', weapon)
     params.set('paint', paint)
@@ -184,7 +254,9 @@ function appendItemParams(
 
   const view = opts.view ?? 'gun'
   params.set('view', view)
-  if (view === 'agent' && !params.has('agent')) {
+
+  // Agent view: always pass agent id with view=agent + weapon + paint.
+  if (view === 'agent') {
     params.set('agent', opts.agent ?? '5036')
   }
 }
@@ -200,23 +272,29 @@ export function buildSkinHubFrameUrl(
   const params = new URLSearchParams()
   appendItemParams(params, skin, opts)
 
+  const view = opts.view ?? 'gun'
+  const decor = opts.decor ?? 'studio'
+
   // Manual orbit by default; autorotate is opt-in via UI toggle.
   params.set('autorotate', opts.autorotate ? '1' : '0')
   params.set('orbit', '1')
   params.set('wheel', '1')
   params.set('hdrispin', '0')
-  params.set('bg', 'transparent')
   params.set('hostloading', '1')
-  params.set('map', 'none')
 
-  if (opts.side) params.set('side', opts.side)
+  applyDecorParams(params, decor)
+
+  // Gun side only for view=gun — side=left confuses hands/agent framing.
+  if (view === 'gun' && opts.side) {
+    params.set('side', opts.side)
+  }
 
   return `${FRAME_BASE}?${params.toString()}`
 }
 
 /**
  * Build https://skinhub.gg/inspect page URL for the same item (opens in new tab).
- * Same weapon/paint OR hash + float/seed/view as the frame embed.
+ * Same weapon/paint OR hash + float/seed/view/decor as the frame embed.
  */
 export function buildSkinHubPageUrl(
   skin: OpenedSkin,
@@ -224,6 +302,10 @@ export function buildSkinHubPageUrl(
 ): string {
   const params = new URLSearchParams()
   appendItemParams(params, skin, opts)
+
+  const decor = opts.decor ?? 'studio'
+  applyDecorParams(params, decor)
+
   return `${PAGE_BASE}?${params.toString()}`
 }
 
