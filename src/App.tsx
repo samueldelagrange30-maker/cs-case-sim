@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Header } from './components/Header'
 import { InspectModal } from './components/inspect/InspectModal'
 import { useCases } from './hooks/useCases'
@@ -8,6 +8,7 @@ import { useMarket } from './hooks/useMarket'
 import { useStats } from './hooks/useStats'
 import { useCharges } from './hooks/useCharges'
 import { useWallet } from './hooks/useWallet'
+import { useAuth } from './hooks/useAuth'
 import {
   countCompletedAlbums,
   evaluateChallenges,
@@ -20,6 +21,8 @@ import {
 import { CasePage } from './pages/CasePage'
 import { CollectionPage } from './pages/CollectionPage'
 import { HomePage } from './pages/HomePage'
+import { LandingPage } from './pages/LandingPage'
+import { AuthPage } from './pages/AuthPage'
 import { InventoryPage } from './pages/InventoryPage'
 import { MarketListingPage } from './pages/MarketListingPage'
 import { MarketPage } from './pages/MarketPage'
@@ -47,6 +50,12 @@ export default function App() {
     markBadgesCompleted,
   } = useStats()
   const navigate = useNavigate()
+  const location = useLocation()
+  const { user, ready: authReady, isLoggedIn, register, login, logout } =
+    useAuth()
+
+  const isPublic =
+    location.pathname === '/' || location.pathname.startsWith('/auth')
 
   const [albums, setAlbums] = useState<CollectionAlbum[]>([])
   const [albumsLoading, setAlbumsLoading] = useState(true)
@@ -237,6 +246,19 @@ export default function App() {
     else showFlash('Vente annulée — item rendu à l’inventaire.')
   }
 
+  const handleLogout = () => {
+    logout()
+    navigate('/', { replace: true })
+  }
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted text-sm">
+        Chargement…
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header
@@ -245,6 +267,9 @@ export default function App() {
         charges={charges}
         maxCharges={maxCharges}
         nextChargeLabel={nextLabel}
+        user={user}
+        onLogout={handleLogout}
+        compact={isPublic}
       />
       {flash && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] rounded-lg border border-accent/40 bg-panel px-4 py-2.5 text-sm text-center shadow-lg">
@@ -252,65 +277,104 @@ export default function App() {
         </div>
       )}
       <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6 sm:py-8">
-        {loading && (
-          <p className="text-center text-muted py-20">
-            Chargement des caisses &amp; capsules…
-          </p>
-        )}
-        {error && (
-          <p className="text-center text-covert py-20">
-            Impossible de charger les données : {error}
-          </p>
-        )}
-        {!loading && !error && (
-          <Routes>
-            <Route path="/" element={<HomePage cases={cases} />} />
-            <Route
-              path="/case/:id"
-              element={
+        <Routes>
+          <Route
+            path="/"
+            element={<LandingPage isLoggedIn={isLoggedIn} />}
+          />
+          <Route
+            path="/auth"
+            element={
+              isLoggedIn ? (
+                <Navigate to="/caisses" replace />
+              ) : (
+                <AuthPage onRegister={register} onLogin={login} />
+              )
+            }
+          />
+          <Route
+            path="/caisses"
+            element={
+              !isLoggedIn ? (
+                <Navigate to="/auth" replace />
+              ) : loading ? (
+                <p className="text-center text-muted py-20">
+                  Chargement des caisses &amp; capsules…
+                </p>
+              ) : error ? (
+                <p className="text-center text-covert py-20">
+                  Impossible de charger les données : {error}
+                </p>
+              ) : (
+                <HomePage cases={cases} />
+              )
+            }
+          />
+          <Route
+            path="/case/:id"
+            element={
+              !isLoggedIn ? (
+                <Navigate to="/auth" replace />
+              ) : (
                 <CasePage
                   onOpened={handleOpened}
                   sales={market.sales}
                   charges={charges}
                   tryConsume={tryConsumeCharges}
                 />
-              }
-            />
-            <Route
-              path="/collection"
-              element={
+              )
+            }
+          />
+          <Route
+            path="/collection"
+            element={
+              !isLoggedIn ? (
+                <Navigate to="/auth" replace />
+              ) : (
                 <CollectionPage
                   inventory={items}
                   stats={stats}
                   completedBadges={completedBadges}
                 />
-              }
-            />
-            <Route
-              path="/tradeup"
-              element={
+              )
+            }
+          />
+          <Route
+            path="/tradeup"
+            element={
+              !isLoggedIn ? (
+                <Navigate to="/auth" replace />
+              ) : (
                 <TradeUpPage
                   inventory={items}
                   albums={albums}
                   albumsLoading={albumsLoading}
                   onTradeUp={handleTradeUp}
                 />
-              }
-            />
-            <Route
-              path="/inventory"
-              element={
+              )
+            }
+          />
+          <Route
+            path="/inventory"
+            element={
+              !isLoggedIn ? (
+                <Navigate to="/auth" replace />
+              ) : (
                 <InventoryPage
                   items={items}
                   sales={market.sales}
                   onClear={clear}
                   onListForSale={handleListForSale}
                 />
-              }
-            />
-            <Route
-              path="/market"
-              element={
+              )
+            }
+          />
+          <Route
+            path="/market"
+            element={
+              !isLoggedIn ? (
+                <Navigate to="/auth" replace />
+              ) : (
                 <MarketPage
                   active={market.active}
                   mine={market.mine}
@@ -321,11 +385,15 @@ export default function App() {
                   onCancel={handleCancel}
                   onInspect={setMarketInspect}
                 />
-              }
-            />
-            <Route
-              path="/market/:listingId"
-              element={
+              )
+            }
+          />
+          <Route
+            path="/market/:listingId"
+            element={
+              !isLoggedIn ? (
+                <Navigate to="/auth" replace />
+              ) : (
                 <MarketListingPage
                   getById={market.getById}
                   sales={market.sales}
@@ -334,11 +402,16 @@ export default function App() {
                   onCancel={handleCancel}
                   onInspect={setMarketInspect}
                 />
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        )}
+              )
+            }
+          />
+          <Route
+            path="*"
+            element={
+              <Navigate to={isLoggedIn ? '/caisses' : '/'} replace />
+            }
+          />
+        </Routes>
       </main>
       <footer className="border-t border-border py-4 text-center text-[11px] text-muted px-4">
         Données skins : ByMykel CSGO-API · Skin Csgo — Simulateur de caisses

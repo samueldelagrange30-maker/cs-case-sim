@@ -115,7 +115,7 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
     return (
       <div className="text-center py-20 space-y-4">
         <p className="text-muted">Caisse introuvable.</p>
-        <Link to="/" className="text-accent hover:underline">
+        <Link to="/caisses" className="text-accent hover:underline">
           ← Retour
         </Link>
       </div>
@@ -128,7 +128,7 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
     <div className="space-y-8">
       <div>
         <Link
-          to="/"
+          to="/caisses"
           className="text-sm text-muted hover:text-accent transition"
         >
           ← Toutes les caisses &amp; capsules

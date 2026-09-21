@@ -85,8 +85,6 @@ export function OpenOverlay({
   const rafRef = useRef<number[]>([])
   const winnersLenRef = useRef(winners.length)
   winnersLenRef.current = winners.length
-  const currentRef = useRef(current)
-  currentRef.current = current
   const lastTickSlot = useRef(-1)
 
   const winner = winners[current]!
@@ -252,14 +250,18 @@ export function OpenOverlay({
     return () => window.removeEventListener('keydown', onKey)
   }, [uiPhase, confirmClose])
 
+  /** Skip remaining animations — keep all rolled winners, jump to results. */
   const handleSkip = () => {
-    if (uiPhase !== 'spin') return
+    if (uiPhase === 'results') return
     clearTimers()
     spinTokenRef.current += 1
-    if (!targetRef.current) {
-      targetRef.current = computeTarget()
-    }
-    landOnWinner(currentRef.current)
+    setSpinning(false)
+    setCinematic(false)
+    setShake(false)
+    setConfetti(false)
+    setOffset(targetRef.current || 0)
+    // Multi: abort queue → final results. Single: same (show all results).
+    setUiPhase('results')
   }
 
   const handleBackdrop = () => {
@@ -341,11 +343,16 @@ export function OpenOverlay({
               </p>
             )}
           </div>
-          {uiPhase === 'spin' && (
+          {uiPhase !== 'results' && (
             <button
               type="button"
               onClick={handleSkip}
-              className="shrink-0 rounded-lg border border-border bg-panel/80 px-4 py-2 text-sm font-semibold text-text hover:border-accent hover:text-accent transition"
+              className="shrink-0 rounded-lg border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/20 transition"
+              title={
+                isMulti
+                  ? 'Passer les animations restantes et voir tous les résultats'
+                  : 'Passer l’animation'
+              }
             >
               Passer
             </button>

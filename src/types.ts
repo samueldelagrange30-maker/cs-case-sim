@@ -36,6 +36,8 @@ export interface CrateIndexEntry {
   first_sale_date: string
   contains_count: number
   contains_rare_count: number
+  /** Skin / item names inside the crate (for search). */
+  contains_names?: string[]
 }
 
 export type CrateType =

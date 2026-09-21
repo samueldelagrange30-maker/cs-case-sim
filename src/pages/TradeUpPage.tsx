@@ -185,7 +185,7 @@ export function TradeUpPage({
         {eligible.length === 0 ? (
           <p className="text-sm text-muted py-8 text-center">
             Aucun skin éligible.{' '}
-            <Link to="/" className="text-accent hover:underline">
+            <Link to="/caisses" className="text-accent hover:underline">
               Ouvrir des caisses
             </Link>
           </p>

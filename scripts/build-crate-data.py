@@ -109,6 +109,7 @@ def main() -> None:
                 "first_sale_date": c["first_sale_date"],
                 "contains_count": len(c["contains"]),
                 "contains_rare_count": len(c["contains_rare"]),
+                "contains_names": sorted({it["name"] for it in c["contains"] + c["contains_rare"] if it.get("name")}),
             }
         )
         safe = c["id"].replace("/", "_")

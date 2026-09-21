@@ -3,6 +3,18 @@ import { CaseCard } from '../components/CaseCard'
 import { TYPE_FILTERS } from '../lib/crateTypes'
 import type { CrateIndexEntry, CrateType } from '../types'
 
+function findContentMatch(
+  c: CrateIndexEntry,
+  s: string,
+): string | null {
+  const names = c.contains_names
+  if (!names?.length) return null
+  for (const n of names) {
+    if (n.toLowerCase().includes(s)) return n
+  }
+  return null
+}
+
 export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
   const [q, setQ] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | CrateType>('all')
@@ -24,12 +36,23 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
       list = list.filter((c) => c.type === typeFilter)
     }
     const s = q.trim().toLowerCase()
-    if (!s) return list
-    return list.filter(
-      (c) =>
+    if (!s) {
+      return list.map((c) => ({ crate: c, contentMatch: null as string | null }))
+    }
+    const out: { crate: CrateIndexEntry; contentMatch: string | null }[] = []
+    for (const c of list) {
+      const nameHit =
         c.name.toLowerCase().includes(s) ||
-        c.market_hash_name.toLowerCase().includes(s),
-    )
+        c.market_hash_name.toLowerCase().includes(s)
+      const contentMatch = findContentMatch(c, s)
+      if (nameHit || contentMatch) {
+        out.push({
+          crate: c,
+          contentMatch: nameHit ? null : contentMatch,
+        })
+      }
+    }
+    return out
   }, [cases, q, typeFilter])
 
   return (
@@ -43,13 +66,13 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
             {cases.length} caisses &amp; capsules · ouverture simulée gratuite
           </p>
         </div>
-        <label className="block w-full sm:w-72">
+        <label className="block w-full sm:w-80">
           <span className="sr-only">Rechercher</span>
           <input
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Rechercher…"
+            placeholder="Caisse ou skin (ex. Asiimov)…"
             className="w-full rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
           />
         </label>
@@ -81,8 +104,12 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
         <p className="text-center text-muted py-16">Aucun résultat.</p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
-          {filtered.map((c) => (
-            <CaseCard key={c.id} c={c} />
+          {filtered.map(({ crate, contentMatch }) => (
+            <CaseCard
+              key={crate.id}
+              c={crate}
+              contentMatch={contentMatch}
+            />
           ))}
         </div>
       )}
