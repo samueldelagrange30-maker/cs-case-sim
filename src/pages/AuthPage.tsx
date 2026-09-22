@@ -176,9 +176,14 @@ export function AuthPage({ onRegister, onLogin }: Props) {
           </form>
         </div>
 
+        <p className="text-center text-sm">
+          <Link to="/caisses" className="text-accent hover:underline font-medium">
+            Continuer sans compte →
+          </Link>
+        </p>
         <p className="text-center text-[11px] text-muted px-4">
-          Simulateur gratuit — aucun argent réel. Les skins affichés sont
-          décoratifs.
+          Compte optionnel (cosmétique). Inventaire & progression restent sur
+          cet appareil. Simulateur gratuit — aucun argent réel.
         </p>
       </div>
     </div>

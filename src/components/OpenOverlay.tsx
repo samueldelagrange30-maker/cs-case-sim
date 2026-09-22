@@ -45,6 +45,7 @@ interface Props {
   /** Optional: reopen ×1 after inventory is committed. */
   onReopenOne?: () => void
   onInspect?: (skin: OpenedSkin) => void
+  isNewDiscovery?: (name: string) => boolean
 }
 
 type UiPhase = 'spin' | 'reveal' | 'results'
@@ -85,6 +86,7 @@ export function OpenOverlay({
   onDone,
   onReopenOne,
   onInspect,
+  isNewDiscovery,
 }: Props) {
   const [current, setCurrent] = useState(0)
   const [offset, setOffset] = useState(0)
@@ -629,6 +631,17 @@ export function OpenOverlay({
                 <p className="text-lg sm:text-xl font-bold">
                   {displayName(winner)}
                 </p>
+                {isNewDiscovery && (
+                  <p
+                    className={`text-xs font-bold uppercase tracking-wide ${
+                      isNewDiscovery(winner.item.name)
+                        ? 'text-success'
+                        : 'text-muted'
+                    }`}
+                  >
+                    {isNewDiscovery(winner.item.name) ? '✨ Nouveau' : 'Doublon'}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -644,7 +657,12 @@ export function OpenOverlay({
             </h2>
             <div className="grid gap-3 max-w-3xl mx-auto sm:mx-0">
               {winners.map((s) => (
-                <ResultCard key={s.uid} skin={s} onInspect={onInspect} />
+                <ResultCard
+                  key={s.uid}
+                  skin={s}
+                  onInspect={onInspect}
+                  isNouveau={isNewDiscovery?.(s.item.name)}
+                />
               ))}
             </div>
           </div>

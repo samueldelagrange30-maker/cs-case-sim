@@ -29,15 +29,16 @@ const TIER_ORDER: RarityTier[] = [
 ]
 
 interface Props {
-  onOpened: (skins: OpenedSkin[]) => void
+  onOpened: (skins: OpenedSkin[], caseId?: string) => void
   sales?: SaleRecord[]
   charges: number
   tryConsume: (n: number) => boolean
+  isNewDiscovery?: (name: string) => boolean
 }
 
 type Phase = 'idle' | 'spinning' | 'results'
 
-export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
+export function CasePage({ onOpened, sales = [], charges, tryConsume, isNewDiscovery }: Props) {
   const { id } = useParams()
   const { crate: caseData, loading, error } = useCrate(
     id ? decodeURIComponent(id) : undefined,
@@ -84,14 +85,15 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
     const skins = pendingRef.current
     if (!addedRef.current && skins.length > 0) {
       addedRef.current = true
-      onOpenedRef.current(skins)
+      const cid = caseData?.id ?? skins[0]?.caseId
+      onOpenedRef.current(skins, cid)
     }
     setLastResults(skins)
     setPending([])
     pendingRef.current = skins
     openLockRef.current = false
     setPhase('results')
-  }, [])
+  }, [caseData?.id])
 
   const handleOverlayDone = useCallback(() => {
     commitOpened()
@@ -231,6 +233,7 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
             !CHARGES_ENABLED || charges >= 1 ? handleReopenOne : undefined
           }
           onInspect={setInspectSkin}
+          isNewDiscovery={isNewDiscovery}
         />
       )}
 
@@ -259,7 +262,7 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
           </div>
           <div className="grid gap-3">
             {lastResults.map((s) => (
-              <ResultCard key={s.uid} skin={s} onInspect={setInspectSkin} />
+              <ResultCard key={s.uid} skin={s} onInspect={setInspectSkin} isNouveau={isNewDiscovery?.(s.item.name)} />
             ))}
           </div>
           <button

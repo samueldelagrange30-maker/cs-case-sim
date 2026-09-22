@@ -19,7 +19,7 @@ const FEATURES = [
   },
   {
     title: 'Inventaire',
-    desc: 'Drops locaux, inspect 360°, tri & filtres — stockés dans le navigateur.',
+    desc: 'Drops locaux, inspect 360°, favoris & vitrine — stockés dans le navigateur.',
     icon: '🎒',
   },
   {
@@ -29,7 +29,7 @@ const FEATURES = [
   },
   {
     title: 'Collections',
-    desc: 'Albums, badges et trade-up contract pour progresser.',
+    desc: 'Albums, objectifs perso, badges et trade-up pour progresser.',
     icon: '🏆',
   },
 ]
@@ -37,7 +37,6 @@ const FEATURES = [
 export function LandingPage({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <div className="space-y-10 sm:space-y-12 py-2 sm:py-4">
-      {/* Above the fold */}
       <section className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-panel via-[#0f1520] to-[#080a0e] px-5 py-10 sm:px-10 sm:py-14 shadow-2xl shadow-black/50 min-h-[min(70dvh,28rem)] flex flex-col justify-center">
         <AmbientOrbs />
         <div className="hidden md:block absolute inset-y-0 right-0 w-[46%] opacity-90 pointer-events-none">
@@ -56,26 +55,22 @@ export function LandingPage({ isLoggedIn }: { isLoggedIn: boolean }) {
           </h1>
           <p className="body-muted max-w-md text-sm sm:text-base">
             Roulette, inventaire, marché $SIM et collections. 100&nbsp;%
-            fictif — probabilités honnêtes, zéro argent réel.
+            fictif — probabilités honnêtes, zéro argent réel. Aucun compte
+            requis pour commencer.
           </p>
           <div className="flex flex-wrap gap-3 pt-1">
-            {isLoggedIn ? (
-              <Link to="/caisses" className="btn btn-primary btn-lg">
-                Entrer dans le simulateur
+            <Link to="/caisses" className="btn btn-primary btn-lg">
+              {isLoggedIn ? 'Entrer dans le simulateur' : 'Jouer sans compte'}
+            </Link>
+            {!isLoggedIn && (
+              <Link to="/auth" className="btn btn-ghost btn-lg">
+                Compte optionnel
               </Link>
-            ) : (
-              <>
-                <Link to="/auth" className="btn btn-primary btn-lg">
-                  Commencer
-                </Link>
-                <Link to="/auth?mode=login" className="btn btn-ghost btn-lg">
-                  J&apos;ai déjà un compte
-                </Link>
-              </>
             )}
           </div>
           <p className="text-[11px] text-muted">
-            Compte local (navigateur) · Non affilié à Valve / Steam
+            Progression locale (cet appareil) · Compte cosmétique optionnel ·
+            Non affilié à Valve / Steam
           </p>
         </div>
 

@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { CaseCard } from '../components/CaseCard'
+import { ResumeCard } from '../components/engagement/ResumeCard'
 import { TYPE_FILTERS } from '../lib/crateTypes'
 import {
   compactSearch,
@@ -7,7 +9,11 @@ import {
   normalizeSearch,
   textMatches,
 } from '../lib/searchNormalize'
-import type { CrateIndexEntry, CrateType } from '../types'
+import { bestIncompleteAlbum } from '../lib/goals'
+import type { CollectionAlbum } from '../lib/collections'
+import type { SimStats } from '../lib/stats'
+import type { CrateIndexEntry, CrateType, OpenedSkin } from '../types'
+import type { useEngagement } from '../hooks/useEngagement'
 
 function findContentMatch(
   c: CrateIndexEntry,
@@ -22,9 +28,29 @@ function findContentMatch(
   return null
 }
 
-export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
-  const [q, setQ] = useState('')
+type EngagementApi = ReturnType<typeof useEngagement>
+
+export function HomePage({
+  cases,
+  inventory,
+  albums,
+  stats,
+  engagement,
+}: {
+  cases: CrateIndexEntry[]
+  inventory: OpenedSkin[]
+  albums: CollectionAlbum[]
+  stats: SimStats
+  engagement: EngagementApi
+}) {
+  const [searchParams] = useSearchParams()
+  const [q, setQ] = useState(() => searchParams.get('q') ?? '')
   const [typeFilter, setTypeFilter] = useState<'all' | CrateType>('all')
+
+  useEffect(() => {
+    const qq = searchParams.get('q')
+    if (qq != null) setQ(qq)
+  }, [searchParams])
 
   const counts = useMemo(() => {
     const map = new Map<'all' | CrateType, number>()
@@ -37,7 +63,6 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
     return map
   }, [cases])
 
-  /** Precompute haystacks once per cases load (avoids re-joining on every keystroke). */
   const searchIndex = useMemo(() => {
     return cases.map((c) => ({
       crate: c,
@@ -72,8 +97,29 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
     return out
   }, [searchIndex, q, typeFilter])
 
+  const bestAlbum = useMemo(
+    () => bestIncompleteAlbum(albums, inventory),
+    [albums, inventory],
+  )
+  const goalProgress = engagement.getProgress(inventory, albums, stats)
+  const showResume =
+    inventory.length > 0 ||
+    !!engagement.goal ||
+    !!engagement.eng.lastCaseId ||
+    !!engagement.eng.lastDiscovered
+
   return (
     <div className="space-y-6">
+      {showResume && (
+        <ResumeCard
+          bestAlbum={bestAlbum}
+          lastDiscovered={engagement.eng.lastDiscovered}
+          goal={engagement.goal}
+          goalProgress={goalProgress}
+          lastCaseId={engagement.eng.lastCaseId}
+        />
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight title-display">

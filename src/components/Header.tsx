@@ -12,6 +12,7 @@ import {
 } from '../lib/sfx'
 import { loadPrefs, savePrefs } from '../lib/prefs'
 import type { AuthUser } from '../lib/auth'
+import type { AccentTheme } from '../lib/engagement'
 
 export function Header({
   inventoryCount,
@@ -22,6 +23,9 @@ export function Header({
   user,
   onLogout,
   compact,
+  accentTheme = 'gold',
+  onAccentTheme,
+  guest,
 }: {
   inventoryCount: number
   walletBalance: number
@@ -31,6 +35,9 @@ export function Header({
   user?: AuthUser | null
   onLogout?: () => void
   compact?: boolean
+  accentTheme?: AccentTheme
+  onAccentTheme?: (t: AccentTheme) => void
+  guest?: boolean
 }) {
   const [muted, setMuted] = useState(() => isSfxMuted())
   const [volume, setVolume] = useState(() => getSfxVolume())
@@ -92,23 +99,21 @@ export function Header({
         <div className="flex items-center gap-2">
           {compact ? (
             <>
+              <Link to="/caisses" className="btn btn-primary btn-sm">
+                Jouer
+              </Link>
               {user ? (
-                <>
-                  <Link to="/caisses" className="btn btn-primary btn-sm">
-                    Entrer
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={onLogout}
-                    className="text-xs text-muted hover:text-text px-2 py-2 min-h-11"
-                    title={user.email}
-                  >
-                    {user.username} · Déco
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="text-xs text-muted hover:text-text px-2 py-2 min-h-11"
+                  title={user.email}
+                >
+                  {user.username} · Déco
+                </button>
               ) : (
-                <Link to="/auth" className="btn btn-primary btn-sm">
-                  Inscription / Connexion
+                <Link to="/auth" className="btn btn-ghost btn-sm">
+                  Compte
                 </Link>
               )}
             </>
@@ -163,7 +168,7 @@ export function Header({
                   )}
                 </NavLink>
               </nav>
-              {user && (
+              {user ? (
                 <button
                   type="button"
                   onClick={onLogout}
@@ -172,7 +177,15 @@ export function Header({
                 >
                   {user.username}
                 </button>
-              )}
+              ) : guest ? (
+                <Link
+                  to="/auth"
+                  className="hidden sm:inline-flex items-center rounded-full border border-border px-2.5 py-2 text-[11px] text-muted hover:text-accent hover:border-accent/40 transition min-h-11"
+                  title="Compte optionnel — les données restent locales"
+                >
+                  Invité
+                </Link>
+              ) : null}
             </>
           )}
         </div>
@@ -212,6 +225,21 @@ export function Header({
               className="w-28 accent-[var(--color-accent)]"
             />
           </label>
+          {onAccentTheme && (
+            <label className="inline-flex items-center gap-2 text-xs text-muted">
+              Thème
+              <select
+                className="input-field !py-1 !min-h-8 text-xs w-auto"
+                value={accentTheme}
+                onChange={(e) =>
+                  onAccentTheme(e.target.value as AccentTheme)
+                }
+              >
+                <option value="gold">Or</option>
+                <option value="blue">Bleu</option>
+              </select>
+            </label>
+          )}
         </div>
       )}
 

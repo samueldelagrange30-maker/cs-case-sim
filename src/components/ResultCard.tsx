@@ -5,16 +5,20 @@ import { getStickers } from '../lib/stickers'
 interface Props {
   skin: OpenedSkin
   onInspect?: (skin: OpenedSkin) => void
+  /** True when this name was not owned before this open */
+  isNouveau?: boolean
 }
 
-export function ResultCard({ skin, onInspect }: Props) {
+export function ResultCard({ skin, onInspect, isNouveau }: Props) {
   const color = rarityColor(skin)
   const stickers = getStickers(skin)
   return (
     <button
       type="button"
       onClick={() => onInspect?.(skin)}
-      className="w-full text-left rounded-xl border bg-panel overflow-hidden hover:brightness-110 transition focus-visible:ring-2 focus-visible:ring-accent/50"
+      className={`w-full text-left rounded-xl border bg-panel overflow-hidden hover:brightness-110 transition focus-visible:ring-2 focus-visible:ring-accent/50 ${
+        isNouveau ? 'ring-1 ring-success/50' : ''
+      }`}
       style={{ borderColor: color, boxShadow: `0 0 24px ${color}33` }}
       title={onInspect ? 'Inspecter' : undefined}
     >
@@ -36,6 +40,17 @@ export function ResultCard({ skin, onInspect }: Props) {
                   className="h-5 w-5 object-contain"
                 />
               ))}
+            </span>
+          )}
+          {isNouveau != null && (
+            <span
+              className={`absolute top-1 left-1 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                isNouveau
+                  ? 'bg-success/90 text-[#0a0d12]'
+                  : 'bg-panel-2/90 text-muted border border-border'
+              }`}
+            >
+              {isNouveau ? 'Nouveau' : 'Doublon'}
             </span>
           )}
         </div>

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Header } from './components/Header'
 import { InspectModal } from './components/inspect/InspectModal'
+import { CoachTips } from './components/engagement/CoachTips'
+import { GoalPrompt } from './components/engagement/GoalPrompt'
 import { useCases } from './hooks/useCases'
 import { useInventory } from './hooks/useInventory'
 import { useMarket } from './hooks/useMarket'
@@ -9,6 +11,7 @@ import { useStats } from './hooks/useStats'
 import { useCharges } from './hooks/useCharges'
 import { useWallet } from './hooks/useWallet'
 import { useAuth } from './hooks/useAuth'
+import { useEngagement } from './hooks/useEngagement'
 import {
   countCompletedAlbums,
   evaluateChallenges,
@@ -18,6 +21,7 @@ import {
   loadSkinCollectionsMap,
   type CollectionAlbum,
 } from './lib/collections'
+import { normalizeSkinName } from './lib/normalizeName'
 import { CasePage } from './pages/CasePage'
 import { CollectionPage } from './pages/CollectionPage'
 import { HomePage } from './pages/HomePage'
@@ -29,6 +33,7 @@ import { MarketPage } from './pages/MarketPage'
 import { TradeUpPage } from './pages/TradeUpPage'
 import type { AuctionListing, OpenedSkin } from './types'
 import { formatSim } from './lib/pricing'
+import { applyAccentTheme } from './lib/engagement'
 
 export default function App() {
   const { cases, loading, error } = useCases()
@@ -53,13 +58,33 @@ export default function App() {
   const location = useLocation()
   const { user, ready: authReady, isLoggedIn, register, login, logout } =
     useAuth()
+  const engagement = useEngagement()
 
   const isPublic =
     location.pathname === '/' || location.pathname.startsWith('/auth')
+  const inApp = !isPublic
 
   const [albums, setAlbums] = useState<CollectionAlbum[]>([])
   const [albumsLoading, setAlbumsLoading] = useState(true)
   const skinMapRef = useRef<Record<string, string[]> | null>(null)
+
+  const [showGoalPrompt, setShowGoalPrompt] = useState(false)
+  const firstOpenPendingRef = useRef(false)
+
+  useEffect(() => {
+    applyAccentTheme(engagement.eng.accentTheme)
+  }, [engagement.eng.accentTheme])
+
+  // Seed seenNames from existing inventory (returning guests / pre-engagement data)
+  useEffect(() => {
+    if (items.length === 0) return
+    if (engagement.eng.seenNames.length > 0) return
+    const names = [
+      ...new Set(items.map((i) => normalizeSkinName(i.item.name))),
+    ]
+    engagement.patch({ seenNames: names })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.length])
 
   useEffect(() => {
     let cancelled = false
@@ -89,12 +114,30 @@ export default function App() {
   }, [])
 
   const handleOpened = useCallback(
-    (skins: OpenedSkin[]) => {
+    (skins: OpenedSkin[], caseId?: string) => {
       const enriched = enrichSkins(skins)
+      const wasEmpty = stats.opensCount === 0
       addItems(enriched)
       incrementOpens(enriched.length)
+      if (caseId) {
+        engagement.recordOpen(enriched, caseId)
+      } else if (enriched[0]?.caseId) {
+        engagement.recordOpen(enriched, enriched[0].caseId)
+      } else {
+        engagement.recordOpen(enriched, '')
+      }
+      if (wasEmpty && !engagement.eng.goalPromptDone) {
+        firstOpenPendingRef.current = true
+        setShowGoalPrompt(true)
+      }
     },
-    [addItems, enrichSkins, incrementOpens],
+    [
+      addItems,
+      enrichSkins,
+      incrementOpens,
+      engagement,
+      stats.opensCount,
+    ],
   )
 
   const market = useMarket({
@@ -124,6 +167,17 @@ export default function App() {
     window.setTimeout(() => setFlash(null), 3200)
   }, [])
 
+  // Goal completion celebration (cosmetic toast only)
+  useEffect(() => {
+    if (!engagement.goal || engagement.goal.completedAt) return
+    const prog = engagement.getProgress(items, albums, stats)
+    if (prog?.completed) {
+      engagement.markGoalCompleted(engagement.goal)
+      showFlash(`Objectif atteint : ${engagement.goal.title} 🎉`)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, albums, stats, engagement.goal, engagement.eng.vitrineUids, showFlash])
+
   const handleBadgesUnlocked = useCallback(
     (ids: string[], titles: string[]) => {
       markBadgesCompleted(ids)
@@ -136,7 +190,6 @@ export default function App() {
     [markBadgesCompleted, showFlash],
   )
 
-  // Global badge check (opens, inventory, trade-ups, market, albums)
   useEffect(() => {
     if (albumsLoading) return
     const albumsCompleted = countCompletedAlbums(albums, items)
@@ -193,7 +246,6 @@ export default function App() {
       const removed = removeMany(inputs.map((s) => s.uid))
       if (removed.length !== 10) {
         showFlash('Impossible de consommer les 10 skins.')
-        // put back if partial
         if (removed.length > 0) addItems(removed)
         return
       }
@@ -251,6 +303,15 @@ export default function App() {
     navigate('/', { replace: true })
   }
 
+  /** Nouveau if name not yet in seenNames (updated on commit). */
+  const isNewDiscovery = useCallback(
+    (name: string) => {
+      const key = normalizeSkinName(name)
+      return !engagement.eng.seenNames.includes(key)
+    },
+    [engagement.eng.seenNames],
+  )
+
   if (!authReady) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-muted text-sm">
@@ -259,6 +320,26 @@ export default function App() {
       </div>
     )
   }
+
+  const casesRoute = loading ? (
+    <div className="flex flex-col items-center justify-center py-20 gap-3">
+      <div className="h-9 w-9 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+      <p className="text-muted text-sm">Chargement des caisses &amp; capsules…</p>
+    </div>
+  ) : error ? (
+    <div className="surface p-8 text-center max-w-md mx-auto space-y-2">
+      <p className="text-covert font-semibold">Impossible de charger les données</p>
+      <p className="body-muted text-sm">{error}</p>
+    </div>
+  ) : (
+    <HomePage
+      cases={cases}
+      inventory={items}
+      albums={albums}
+      stats={stats}
+      engagement={engagement}
+    />
+  )
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -271,6 +352,9 @@ export default function App() {
         user={user}
         onLogout={handleLogout}
         compact={isPublic}
+        accentTheme={engagement.eng.accentTheme}
+        onAccentTheme={engagement.themeSet}
+        guest={!isLoggedIn}
       />
       {flash && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] rounded-lg border border-accent/40 bg-panel px-4 py-3 text-sm text-center shadow-lg shadow-black/40" role="status">
@@ -293,132 +377,92 @@ export default function App() {
               )
             }
           />
-          <Route
-            path="/caisses"
-            element={
-              !isLoggedIn ? (
-                <Navigate to="/auth" replace />
-              ) : loading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                  <div className="h-9 w-9 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
-                  <p className="text-muted text-sm">Chargement des caisses &amp; capsules…</p>
-                </div>
-              ) : error ? (
-                <div className="surface p-8 text-center max-w-md mx-auto space-y-2">
-                  <p className="text-covert font-semibold">Impossible de charger les données</p>
-                  <p className="body-muted text-sm">{error}</p>
-                </div>
-              ) : (
-                <HomePage cases={cases} />
-              )
-            }
-          />
+          <Route path="/caisses" element={casesRoute} />
           <Route
             path="/case/:id"
             element={
-              !isLoggedIn ? (
-                <Navigate to="/auth" replace />
-              ) : (
-                <CasePage
-                  onOpened={handleOpened}
-                  sales={market.sales}
-                  charges={charges}
-                  tryConsume={tryConsumeCharges}
-                />
-              )
+              <CasePage
+                onOpened={handleOpened}
+                sales={market.sales}
+                charges={charges}
+                tryConsume={tryConsumeCharges}
+                isNewDiscovery={isNewDiscovery}
+              />
             }
           />
           <Route
             path="/collection"
             element={
-              !isLoggedIn ? (
-                <Navigate to="/auth" replace />
-              ) : (
-                <CollectionPage
-                  inventory={items}
-                  stats={stats}
-                  completedBadges={completedBadges}
-                />
-              )
+              <CollectionPage
+                inventory={items}
+                stats={stats}
+                completedBadges={completedBadges}
+                engagement={engagement}
+                albums={albums}
+                albumsLoading={albumsLoading}
+              />
             }
           />
           <Route
             path="/tradeup"
             element={
-              !isLoggedIn ? (
-                <Navigate to="/auth" replace />
-              ) : (
-                <TradeUpPage
-                  inventory={items}
-                  albums={albums}
-                  albumsLoading={albumsLoading}
-                  onTradeUp={handleTradeUp}
-                />
-              )
+              <TradeUpPage
+                inventory={items}
+                albums={albums}
+                albumsLoading={albumsLoading}
+                onTradeUp={handleTradeUp}
+              />
             }
           />
           <Route
             path="/inventory"
             element={
-              !isLoggedIn ? (
-                <Navigate to="/auth" replace />
-              ) : (
-                <InventoryPage
-                  items={items}
-                  sales={market.sales}
-                  onClear={clear}
-                  onListForSale={handleListForSale}
-                />
-              )
+              <InventoryPage
+                items={items}
+                sales={market.sales}
+                onClear={clear}
+                onListForSale={handleListForSale}
+                engagement={engagement}
+              />
             }
           />
           <Route
             path="/market"
             element={
-              !isLoggedIn ? (
-                <Navigate to="/auth" replace />
-              ) : (
-                <MarketPage
-                  active={market.active}
-                  mine={market.mine}
-                  sales={market.sales}
-                  listings={market.listings}
-                  onBid={openBidModal}
-                  onBuyout={handleBuyout}
-                  onCancel={handleCancel}
-                  onInspect={setMarketInspect}
-                />
-              )
+              <MarketPage
+                active={market.active}
+                mine={market.mine}
+                sales={market.sales}
+                listings={market.listings}
+                onBid={openBidModal}
+                onBuyout={handleBuyout}
+                onCancel={handleCancel}
+                onInspect={setMarketInspect}
+              />
             }
           />
           <Route
             path="/market/:listingId"
             element={
-              !isLoggedIn ? (
-                <Navigate to="/auth" replace />
-              ) : (
-                <MarketListingPage
-                  getById={market.getById}
-                  sales={market.sales}
-                  onBid={openBidModal}
-                  onBuyout={handleBuyout}
-                  onCancel={handleCancel}
-                  onInspect={setMarketInspect}
-                />
-              )
+              <MarketListingPage
+                getById={market.getById}
+                sales={market.sales}
+                onBid={openBidModal}
+                onBuyout={handleBuyout}
+                onCancel={handleCancel}
+                onInspect={setMarketInspect}
+              />
             }
           />
           <Route
             path="*"
-            element={
-              <Navigate to={isLoggedIn ? '/caisses' : '/'} replace />
-            }
+            element={<Navigate to="/caisses" replace />}
           />
         </Routes>
       </main>
       <footer className="border-t border-border py-4 text-center text-[11px] text-muted px-4">
         Données skins : ByMykel CSGO-API · Skin Csgo — Simulateur de caisses
-        &amp; capsules · Marché $SIM simulé
+        &amp; capsules · Marché $SIM simulé · Progression locale (cet appareil)
       </footer>
 
       {marketInspect && (
@@ -494,6 +538,31 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {inApp && !engagement.eng.coachDone && (
+        <CoachTips onDismiss={engagement.onCoachDismiss} />
+      )}
+
+      {inApp &&
+        showGoalPrompt &&
+        !engagement.eng.goalPromptDone &&
+        firstOpenPendingRef.current && (
+          <GoalPrompt
+            albums={albums}
+            wishlist={engagement.eng.wishlist}
+            onPick={(tpl, opts) => {
+              engagement.pickGoal(tpl, opts)
+              setShowGoalPrompt(false)
+              firstOpenPendingRef.current = false
+              showFlash(`Objectif : ${tpl.title}`)
+            }}
+            onDismiss={() => {
+              engagement.onGoalPromptDismiss()
+              setShowGoalPrompt(false)
+              firstOpenPendingRef.current = false
+            }}
+          />
+        )}
     </div>
   )
 }

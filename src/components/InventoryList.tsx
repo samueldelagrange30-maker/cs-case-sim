@@ -2,11 +2,18 @@ import { useMemo, useState } from 'react'
 import type { OpenedSkin, RarityTier } from '../types'
 import { displayName, getItemTier, rarityColor, TIER_META } from '../lib/odds'
 import { getStickers } from '../lib/stickers'
+import { normalizeSkinName } from '../lib/normalizeName'
+import { VITRINE_MAX } from '../lib/engagement'
 
 interface Props {
   items: OpenedSkin[]
   onListForSale?: (skin: OpenedSkin) => void
   onInspect?: (skin: OpenedSkin) => void
+  favoriteUids?: string[]
+  vitrineUids?: string[]
+  onToggleFavorite?: (uid: string) => void
+  onToggleVitrine?: (uid: string) => void
+  onWishlistSkin?: (skin: OpenedSkin) => void
 }
 
 type SortKey = 'newest' | 'oldest' | 'name' | 'rarity' | 'float'
@@ -32,11 +39,30 @@ const FILTER_TIERS: { key: 'all' | RarityTier; label: string }[] = [
   { key: 'consumer', label: 'Consumer' },
 ]
 
-export function InventoryList({ items, onListForSale, onInspect }: Props) {
+export function InventoryList({
+  items,
+  onListForSale,
+  onInspect,
+  favoriteUids = [],
+  vitrineUids = [],
+  onToggleFavorite,
+  onToggleVitrine,
+  onWishlistSkin,
+}: Props) {
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<SortKey>('newest')
   const [tier, setTier] = useState<'all' | RarityTier>('all')
   const [stOnly, setStOnly] = useState(false)
+  const [favOnly, setFavOnly] = useState(false)
+
+  const nameCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const s of items) {
+      const k = normalizeSkinName(s.item.name)
+      m.set(k, (m.get(k) ?? 0) + 1)
+    }
+    return m
+  }, [items])
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase()
@@ -45,6 +71,7 @@ export function InventoryList({ items, onListForSale, onInspect }: Props) {
       const t = getItemTier(skin.item, skin.isRareSpecial)
       if (tier !== 'all' && t !== tier) return false
       if (stOnly && !skin.isStatTrak) return false
+      if (favOnly && !favoriteUids.includes(skin.uid)) return false
       if (!query) return true
       const hay = `${skin.item.name} ${skin.caseName} ${skin.wearLabel ?? ''}`.toLowerCase()
       return hay.includes(query)
@@ -72,7 +99,15 @@ export function InventoryList({ items, onListForSale, onInspect }: Props) {
       }
     })
     return list
-  }, [items, q, sort, tier, stOnly])
+  }, [items, q, sort, tier, stOnly, favOnly, favoriteUids])
+
+  const vitrineItems = useMemo(
+    () =>
+      vitrineUids
+        .map((uid) => items.find((i) => i.uid === uid))
+        .filter((x): x is OpenedSkin => !!x),
+    [vitrineUids, items],
+  )
 
   if (items.length === 0) {
     return (
@@ -88,6 +123,34 @@ export function InventoryList({ items, onListForSale, onInspect }: Props) {
 
   return (
     <div className="space-y-4">
+      {vitrineItems.length > 0 && (
+        <div className="surface p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-accent">
+              Vitrine ({vitrineItems.length}/{VITRINE_MAX})
+            </h2>
+            <p className="text-[10px] text-muted">Sur cet appareil</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {vitrineItems.map((skin) => (
+              <button
+                key={skin.uid}
+                type="button"
+                onClick={() => onInspect?.(skin)}
+                className="h-16 w-16 rounded-lg border border-accent/40 bg-[#0a0d12] p-1 hover:brightness-110"
+                title={skin.item.name}
+              >
+                <img
+                  src={skin.item.image}
+                  alt=""
+                  className="h-full w-full object-contain"
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
         <label className="block flex-1 min-w-0">
           <span className="sr-only">Rechercher</span>
@@ -142,6 +205,14 @@ export function InventoryList({ items, onListForSale, onInspect }: Props) {
         >
           StatTrak™
         </button>
+        <button
+          type="button"
+          onClick={() => setFavOnly((v) => !v)}
+          className={`chip min-h-11 ${favOnly ? 'chip-active' : ''}`}
+          aria-pressed={favOnly}
+        >
+          ★ Favoris
+        </button>
       </div>
 
       <p className="text-xs text-muted">
@@ -155,6 +226,11 @@ export function InventoryList({ items, onListForSale, onInspect }: Props) {
           {filtered.map((skin) => {
             const color = rarityColor(skin)
             const stickers = getStickers(skin)
+            const key = normalizeSkinName(skin.item.name)
+            const count = nameCounts.get(key) ?? 1
+            const isDup = count > 1
+            const isFav = favoriteUids.includes(skin.uid)
+            const inVit = vitrineUids.includes(skin.uid)
             return (
               <li
                 key={skin.uid}
@@ -176,6 +252,15 @@ export function InventoryList({ items, onListForSale, onInspect }: Props) {
                     className="max-h-full max-w-full object-contain"
                     loading="lazy"
                   />
+                  <span
+                    className={`absolute top-1 left-1 text-[9px] font-bold uppercase px-1 py-0.5 rounded ${
+                      isDup
+                        ? 'bg-panel-2/90 text-muted border border-border'
+                        : 'bg-success/90 text-[#0a0d12]'
+                    }`}
+                  >
+                    {isDup ? 'Doublon' : 'Unique'}
+                  </span>
                   {stickers.length > 0 && (
                     <span className="absolute bottom-1 right-1 flex -space-x-1">
                       {stickers.slice(0, 5).map((s) => (
@@ -190,10 +275,44 @@ export function InventoryList({ items, onListForSale, onInspect }: Props) {
                   )}
                 </button>
                 <div className="p-2 space-y-0.5 flex-1 flex flex-col">
-                  <p className="text-[10px] font-semibold" style={{ color }}>
-                    {skin.isRareSpecial ? '★ Rare' : skin.item.rarity.name}
-                    {skin.isStatTrak ? ' · ST' : ''}
-                  </p>
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-[10px] font-semibold" style={{ color }}>
+                      {skin.isRareSpecial ? '★ Rare' : skin.item.rarity.name}
+                      {skin.isStatTrak ? ' · ST' : ''}
+                    </p>
+                    <div className="flex gap-0.5">
+                      {onToggleFavorite && (
+                        <button
+                          type="button"
+                          className={`text-sm min-h-8 min-w-8 ${
+                            isFav ? 'text-accent' : 'text-muted hover:text-accent'
+                          }`}
+                          title={isFav ? 'Retirer des favoris' : 'Favori'}
+                          onClick={() => onToggleFavorite(skin.uid)}
+                        >
+                          {isFav ? '★' : '☆'}
+                        </button>
+                      )}
+                      {onToggleVitrine && (
+                        <button
+                          type="button"
+                          className={`text-[11px] min-h-8 px-1 ${
+                            inVit ? 'text-accent' : 'text-muted hover:text-accent'
+                          }`}
+                          title={
+                            inVit
+                              ? 'Retirer de la vitrine'
+                              : vitrineUids.length >= VITRINE_MAX
+                                ? 'Vitrine pleine'
+                                : 'Ajouter à la vitrine'
+                          }
+                          onClick={() => onToggleVitrine(skin.uid)}
+                        >
+                          {inVit ? '◆' : '◇'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => onInspect?.(skin)}
@@ -207,15 +326,26 @@ export function InventoryList({ items, onListForSale, onInspect }: Props) {
                       : 'N/A'}
                     {stickers.length > 0 ? ` · ${stickers.length} stk` : ''}
                   </p>
-                  {onListForSale && (
-                    <button
-                      type="button"
-                      onClick={() => onListForSale(skin)}
-                      className="mt-auto w-full rounded-md bg-accent/15 text-accent text-[11px] font-semibold py-2.5 min-h-11 hover:bg-accent/25 transition"
-                    >
-                      Mettre en vente
-                    </button>
-                  )}
+                  <div className="mt-auto space-y-1 pt-1">
+                    {onWishlistSkin && (
+                      <button
+                        type="button"
+                        onClick={() => onWishlistSkin(skin)}
+                        className="w-full rounded-md border border-border text-muted text-[10px] font-semibold py-1.5 hover:text-accent hover:border-accent/40"
+                      >
+                        + Wishlist
+                      </button>
+                    )}
+                    {onListForSale && (
+                      <button
+                        type="button"
+                        onClick={() => onListForSale(skin)}
+                        className="w-full rounded-md bg-accent/15 text-accent text-[11px] font-semibold py-2.5 min-h-11 hover:bg-accent/25 transition"
+                      >
+                        Mettre en vente
+                      </button>
+                    )}
+                  </div>
                 </div>
               </li>
             )
