@@ -124,7 +124,7 @@ export function AuthPage({ onRegister, onLogin }: Props) {
                     ? 'email@exemple.com ou pseudo'
                     : 'email@exemple.com'
                 }
-                className="w-full rounded-lg border border-border bg-panel-2/90 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
+                className="input-field"
               />
             </label>
 
@@ -138,7 +138,7 @@ export function AuthPage({ onRegister, onLogin }: Props) {
                   onChange={(e) => setUsername(e.target.value)}
                   required
                   placeholder="TonPseudo"
-                  className="w-full rounded-lg border border-border bg-panel-2/90 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
+                  className="input-field"
                 />
               </label>
             )}
@@ -156,7 +156,7 @@ export function AuthPage({ onRegister, onLogin }: Props) {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full rounded-lg border border-border bg-panel-2/90 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
+                className="input-field"
               />
             </label>
 
@@ -169,7 +169,7 @@ export function AuthPage({ onRegister, onLogin }: Props) {
             <button
               type="submit"
               disabled={busy}
-              className="w-full rounded-lg bg-accent text-bg font-bold py-3 text-sm hover:brightness-110 transition disabled:opacity-60 shadow-lg shadow-accent/25"
+              className="btn btn-primary w-full btn-lg"
             >
               {mode === 'register' ? 'Créer mon compte' : 'Se connecter'}
             </button>

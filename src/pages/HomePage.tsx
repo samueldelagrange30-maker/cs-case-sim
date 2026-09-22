@@ -76,7 +76,7 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight title-display">
             Caisses &amp; capsules
           </h1>
           <p className="text-muted text-sm mt-1">
@@ -90,7 +90,7 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Caisse ou arme (ex. Mp7, AK, Asiimov)…"
-            className="w-full rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+            className="input-field"
             autoComplete="off"
             spellCheck={false}
           />
@@ -106,10 +106,8 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
               key={f.key}
               type="button"
               onClick={() => setTypeFilter(f.key)}
-              className={`rounded-full px-3 py-1.5 text-xs sm:text-sm font-medium border transition ${
-                active
-                  ? 'bg-accent/20 border-accent text-accent'
-                  : 'bg-panel border-border text-muted hover:text-text hover:border-accent/40'
+              className={`chip min-h-11 text-xs sm:text-sm ${
+                active ? 'chip-active' : ''
               }`}
             >
               {f.label}
@@ -120,7 +118,10 @@ export function HomePage({ cases }: { cases: CrateIndexEntry[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-center text-muted py-16">Aucun résultat.</p>
+        <div className="surface p-10 text-center space-y-2">
+          <p className="text-muted font-medium">Aucun résultat</p>
+          <p className="body-muted text-sm">Essayez un autre terme ou filtre de type.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
           {filtered.map(({ crate, contentMatch }) => (

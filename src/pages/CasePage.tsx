@@ -47,9 +47,11 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
   const [pending, setPending] = useState<OpenedSkin[]>([])
   const [lastResults, setLastResults] = useState<OpenedSkin[]>([])
   const [inspectSkin, setInspectSkin] = useState<OpenedSkin | null>(null)
+  const [openCount, setOpenCount] = useState<1 | 5 | 10>(1)
 
   const pendingRef = useRef<OpenedSkin[]>([])
   const addedRef = useRef(false)
+  const openLockRef = useRef(false)
   const onOpenedRef = useRef(onOpened)
   onOpenedRef.current = onOpened
 
@@ -60,11 +62,12 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
 
   const startOpen = useCallback(
     (n: number) => {
-      if (!caseData || phase === 'spinning') return
+      if (!caseData || phase === 'spinning' || openLockRef.current) return
       if (CHARGES_ENABLED) {
         if (charges < n) return
         if (!tryConsume(n)) return
       }
+      openLockRef.current = true
       void resumeAudio()
       const skins = openMultiple(caseData, n)
       pendingRef.current = skins
@@ -86,6 +89,7 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
     setLastResults(skins)
     setPending([])
     pendingRef.current = skins
+    openLockRef.current = false
     setPhase('results')
   }, [])
 
@@ -94,11 +98,12 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
   }, [commitOpened])
 
   const handleReopenOne = useCallback(() => {
-    if (!caseData) return
+    if (!caseData || openLockRef.current) return
     if (CHARGES_ENABLED) {
       if (charges < 1) return
       if (!tryConsume(1)) return
     }
+    openLockRef.current = true
     const skins = openMultiple(caseData, 1)
     pendingRef.current = skins
     addedRef.current = false
@@ -108,112 +113,150 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
   }, [caseData, charges, tryConsume])
 
   if (loading) {
-    return <p className="text-center text-muted py-20">Chargement…</p>
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3">
+        <div className="h-10 w-10 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+        <p className="text-muted text-sm">Chargement de la caisse…</p>
+      </div>
+    )
   }
 
   if (error || !caseData || !groups) {
     return (
-      <div className="text-center py-20 space-y-4">
-        <p className="text-muted">Caisse introuvable.</p>
-        <Link to="/caisses" className="text-accent hover:underline">
-          ← Retour
+      <div className="text-center py-20 space-y-4 surface p-8 max-w-md mx-auto">
+        <p className="text-covert font-semibold">Caisse introuvable</p>
+        <p className="body-muted">
+          {error ?? 'Cette caisse n’existe pas ou n’a pas pu être chargée.'}
+        </p>
+        <Link to="/caisses" className="btn btn-primary">
+          ← Retour au catalogue
         </Link>
       </div>
     )
   }
 
   const showWear = crateHasWear(caseData.type)
-
   const opening = phase === 'spinning'
+  const canOpen = !opening && (!CHARGES_ENABLED || charges >= openCount)
 
   return (
     <div className="space-y-8" aria-hidden={opening || undefined}>
-      {/* Hide case chrome under the fullscreen overlay so nothing peeks through on mobile Safari */}
-      <div className={opening ? 'invisible h-0 overflow-hidden pointer-events-none' : undefined}>
-      <div>
-        <Link
-          to="/caisses"
-          className="text-sm text-muted hover:text-accent transition"
-        >
-          ← Toutes les caisses &amp; capsules
-        </Link>
-      </div>
+      <div
+        className={
+          opening
+            ? 'invisible h-0 overflow-hidden pointer-events-none'
+            : undefined
+        }
+      >
+        <div>
+          <Link
+            to="/caisses"
+            className="text-sm text-muted hover:text-accent transition inline-flex min-h-11 items-center"
+          >
+            ← Toutes les caisses &amp; capsules
+          </Link>
+        </div>
 
-      <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
-        <div className="w-40 h-40 sm:w-48 sm:h-48 shrink-0 flex items-center justify-center rounded-2xl border border-border bg-panel p-4">
-          <img
-            src={caseData.image}
-            alt={caseData.name}
-            className="max-h-full max-w-full object-contain"
-          />
-        </div>
-        <div className="flex-1 text-center md:text-left space-y-3">
-          <p className="text-xs uppercase tracking-wide text-accent">
-            {typeLabel(caseData.type)}
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-bold">{caseData.name}</h1>
-          <p className="text-sm text-muted">{oddsBlurb(caseData)}</p>
-          {!showWear && (
-            <p className="text-xs text-muted">
-              Usure / float : N/A (pas applicable à ce type)
-            </p>
-          )}
-          <div className="flex flex-wrap justify-center md:justify-start gap-2 pt-2">
-            <button
-              type="button"
-              disabled={phase === 'spinning' || (CHARGES_ENABLED && charges < 1)}
-              onClick={() => startOpen(1)}
-              className="rounded-lg bg-accent text-bg font-bold px-5 py-2.5 text-sm hover:brightness-110 disabled:opacity-50 transition shadow-lg shadow-accent/20"
-            >
-              Ouvrir ×1
-            </button>
-            <button
-              type="button"
-              disabled={phase === 'spinning' || (CHARGES_ENABLED && charges < 5)}
-              onClick={() => startOpen(5)}
-              className="rounded-lg border border-accent/60 bg-accent/10 text-accent font-semibold px-4 py-2.5 text-sm hover:bg-accent/20 disabled:opacity-50 transition"
-            >
-              Ouvrir ×5
-            </button>
-            <button
-              type="button"
-              disabled={phase === 'spinning' || (CHARGES_ENABLED && charges < 10)}
-              onClick={() => startOpen(10)}
-              className="rounded-lg border border-accent/60 bg-accent/10 text-accent font-semibold px-4 py-2.5 text-sm hover:bg-accent/20 disabled:opacity-50 transition"
-            >
-              Ouvrir ×10
-            </button>
+        <div className="flex flex-col md:flex-row gap-6 items-center md:items-start mt-4">
+          <div className="w-44 h-44 sm:w-52 sm:h-52 shrink-0 flex items-center justify-center rounded-2xl border border-border bg-gradient-to-b from-panel-2 to-[#0a0d12] p-4 shadow-lg shadow-black/40">
+            <img
+              src={caseData.image}
+              alt={caseData.name}
+              className="max-h-full max-w-full object-contain drop-shadow-xl"
+            />
           </div>
-          {CHARGES_ENABLED && charges < 1 ? (
-            <p className="text-xs text-covert pt-1">
-              Pas assez d’ouvertures — attendez la prochaine charge (1 toutes les
-              10 min).
+          <div className="flex-1 text-center md:text-left space-y-3 w-full">
+            <p className="text-xs uppercase tracking-[0.18em] text-accent font-semibold">
+              {typeLabel(caseData.type)}
             </p>
-          ) : CHARGES_ENABLED && charges < 10 ? (
-            <p className="text-xs text-muted pt-1">
-              Ouvertures disponibles : {charges}/10 — ×5 et ×10 nécessitent
-              assez de charges.
+            <h1 className="text-2xl sm:text-3xl font-bold title-display">
+              {caseData.name}
+            </h1>
+            <p className="text-sm text-muted leading-relaxed">{oddsBlurb(caseData)}</p>
+            <p className="text-[11px] text-muted">
+              $SIM fictif — probabilités honnêtes, aucun argent réel.
+              {!showWear ? ' · Usure / float : N/A' : ''}
             </p>
-          ) : null}
+
+            <div className="flex flex-wrap justify-center md:justify-start gap-2 pt-1">
+              {([1, 5, 10] as const).map((n) => {
+                const active = openCount === n
+                const enough = !CHARGES_ENABLED || charges >= n
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    disabled={opening || !enough}
+                    onClick={() => setOpenCount(n)}
+                    className={`chip min-h-11 px-4 ${active ? 'chip-active' : ''}`}
+                    aria-pressed={active}
+                  >
+                    ×{n}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="flex flex-wrap justify-center md:justify-start gap-3 pt-1">
+              <button
+                type="button"
+                disabled={!canOpen}
+                onClick={() => startOpen(openCount)}
+                className="btn btn-primary btn-lg min-w-[10rem]"
+              >
+                Ouvrir ×{openCount}
+              </button>
+            </div>
+
+            {CHARGES_ENABLED && charges < 1 ? (
+              <p className="text-xs text-covert pt-1">
+                Pas assez d’ouvertures — attendez la prochaine charge (1 toutes
+                les 10 min).
+              </p>
+            ) : CHARGES_ENABLED && charges < 10 ? (
+              <p className="text-xs text-muted pt-1">
+                Ouvertures disponibles : {charges}/10
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
-      </div>{/* end hide-while-opening chrome */}
 
       {phase === 'spinning' && pending.length > 0 && (
         <OpenOverlay
           caseData={caseData}
           winners={pending}
           onDone={handleOverlayDone}
-          onReopenOne={!CHARGES_ENABLED || charges >= 1 ? handleReopenOne : undefined}
+          onReopenOne={
+            !CHARGES_ENABLED || charges >= 1 ? handleReopenOne : undefined
+          }
           onInspect={setInspectSkin}
         />
       )}
 
       {!opening && phase === 'results' && lastResults.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold">
-            Résultat{lastResults.length > 1 ? 's' : ''}
-          </h2>
+        <div className="space-y-4 surface p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="title-section">
+              Résultat{lastResults.length > 1 ? 's' : ''}
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={CHARGES_ENABLED && charges < 1}
+                onClick={() => startOpen(1)}
+                className="btn btn-secondary btn-sm"
+              >
+                Rouvrir ×1
+              </button>
+              <Link to="/inventory" className="btn btn-ghost btn-sm">
+                Inventaire
+              </Link>
+              <Link to="/caisses" className="btn btn-ghost btn-sm">
+                Catalogue
+              </Link>
+            </div>
+          </div>
           <div className="grid gap-3">
             {lastResults.map((s) => (
               <ResultCard key={s.uid} skin={s} onInspect={setInspectSkin} />
@@ -222,7 +265,7 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
           <button
             type="button"
             onClick={() => setPhase('idle')}
-            className="text-sm text-muted hover:text-accent"
+            className="text-sm text-muted hover:text-accent min-h-11"
           >
             Fermer les résultats
           </button>
@@ -230,54 +273,51 @@ export function CasePage({ onOpened, sales = [], charges, tryConsume }: Props) {
       )}
 
       {!opening && (
-      <section className="space-y-6">
-        <h2 className="text-xl font-semibold border-b border-border pb-2">
-          Contenu
-        </h2>
-        {TIER_ORDER.map((tier) => {
-          const items = groups[tier]
-          if (!items.length) return null
-          const meta = TIER_META[tier]
-          return (
-            <div key={tier} className="space-y-3">
-              <h3
-                className="text-sm font-bold uppercase tracking-wider"
-                style={{ color: meta.color }}
-              >
-                {meta.label}{' '}
-                <span className="text-muted font-normal normal-case">
-                  ({items.length})
-                </span>
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                {items.map((item) => (
-                  <SkinRarityCard
-                    key={item.id}
-                    item={item}
-                    isRareSpecial={tier === 'rare'}
-                    name={item.name}
-                    image={item.image}
-                    title="Voir en 360°"
-                    onClick={() =>
-                      setInspectSkin(
-                        previewOpenedFromItem(item, caseData, {
-                          isRareSpecial: tier === 'rare',
-                        }),
-                      )
-                    }
-                    footer={
-                      <span className="mt-1 text-[9px] uppercase tracking-wide text-accent/90">
-                        360°
-                      </span>
-                    }
-                  />
-                ))}
+        <section className="space-y-6">
+          <h2 className="title-section border-b border-border pb-2">Contenu</h2>
+          {TIER_ORDER.map((tier) => {
+            const items = groups[tier]
+            if (!items.length) return null
+            const meta = TIER_META[tier]
+            return (
+              <div key={tier} className="space-y-3">
+                <h3
+                  className="text-sm font-bold uppercase tracking-wider"
+                  style={{ color: meta.color }}
+                >
+                  {meta.label}{' '}
+                  <span className="text-muted font-normal normal-case">
+                    ({items.length})
+                  </span>
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                  {items.map((item) => (
+                    <SkinRarityCard
+                      key={item.id}
+                      item={item}
+                      isRareSpecial={tier === 'rare'}
+                      name={item.name}
+                      image={item.image}
+                      title="Voir en 360°"
+                      onClick={() =>
+                        setInspectSkin(
+                          previewOpenedFromItem(item, caseData, {
+                            isRareSpecial: tier === 'rare',
+                          }),
+                        )
+                      }
+                      footer={
+                        <span className="mt-1 text-[9px] uppercase tracking-wide text-accent/90">
+                          360°
+                        </span>
+                      }
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          )
-        })}
-      </section>
-
+            )
+          })}
+        </section>
       )}
 
       {inspectSkin && (

@@ -253,7 +253,8 @@ export default function App() {
 
   if (!authReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-muted text-sm">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-muted text-sm">
+        <div className="h-9 w-9 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
         Chargement…
       </div>
     )
@@ -272,7 +273,7 @@ export default function App() {
         compact={isPublic}
       />
       {flash && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] rounded-lg border border-accent/40 bg-panel px-4 py-2.5 text-sm text-center shadow-lg">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] rounded-lg border border-accent/40 bg-panel px-4 py-3 text-sm text-center shadow-lg shadow-black/40" role="status">
           {flash}
         </div>
       )}
@@ -298,13 +299,15 @@ export default function App() {
               !isLoggedIn ? (
                 <Navigate to="/auth" replace />
               ) : loading ? (
-                <p className="text-center text-muted py-20">
-                  Chargement des caisses &amp; capsules…
-                </p>
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <div className="h-9 w-9 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+                  <p className="text-muted text-sm">Chargement des caisses &amp; capsules…</p>
+                </div>
               ) : error ? (
-                <p className="text-center text-covert py-20">
-                  Impossible de charger les données : {error}
-                </p>
+                <div className="surface p-8 text-center max-w-md mx-auto space-y-2">
+                  <p className="text-covert font-semibold">Impossible de charger les données</p>
+                  <p className="body-muted text-sm">{error}</p>
+                </div>
               ) : (
                 <HomePage cases={cases} />
               )
@@ -470,20 +473,20 @@ export default function App() {
               onChange={(e) =>
                 setBidAmount(Math.max(1, Number(e.target.value) || 1))
               }
-              className="w-full rounded-lg border border-border bg-panel-2 px-3 py-2 text-sm"
+              className="input-field"
             />
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setBidTarget(null)}
-                className="flex-1 rounded-lg border border-border py-2 text-sm"
+                className="btn btn-ghost flex-1"
               >
                 Annuler
               </button>
               <button
                 type="button"
                 onClick={confirmBid}
-                className="flex-1 rounded-lg bg-accent/90 text-bg font-semibold py-2 text-sm"
+                className="btn btn-primary flex-1"
               >
                 Confirmer
               </button>

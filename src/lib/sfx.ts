@@ -1,9 +1,11 @@
 /** Web Audio SFX for case opens — no external assets. */
 
 const STORAGE_KEY = 'cs-case-sim-sfx-v1'
+const VOLUME_KEY = 'cs-case-sim-sfx-vol-v1'
 
 let ctx: AudioContext | null = null
 let muted = loadMuted()
+let volume = loadVolume()
 
 function loadMuted(): boolean {
   try {
@@ -12,6 +14,18 @@ function loadMuted(): boolean {
     return v === '0' || v === 'false' || v === 'off'
   } catch {
     return false
+  }
+}
+
+function loadVolume(): number {
+  try {
+    const v = localStorage.getItem(VOLUME_KEY)
+    if (v === null) return 0.7
+    const n = Number(v)
+    if (!Number.isFinite(n)) return 0.7
+    return Math.min(1, Math.max(0, n))
+  } catch {
+    return 0.7
   }
 }
 
@@ -31,6 +45,24 @@ export function setSfxMuted(next: boolean): void {
 export function toggleSfxMuted(): boolean {
   setSfxMuted(!muted)
   return muted
+}
+
+export function getSfxVolume(): number {
+  return volume
+}
+
+export function setSfxVolume(next: number): void {
+  volume = Math.min(1, Math.max(0, next))
+  try {
+    localStorage.setItem(VOLUME_KEY, String(volume))
+  } catch {
+    /* ignore */
+  }
+}
+
+function effectiveGain(peak: number): number {
+  if (muted) return 0
+  return peak * volume
 }
 
 function getCtx(): AudioContext | null {
@@ -71,7 +103,7 @@ function tone(
   osc.type = type
   osc.frequency.setValueAtTime(freq, start)
   g.gain.setValueAtTime(0.0001, start)
-  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainPeak), start + 0.01)
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, effectiveGain(gainPeak)), start + 0.01)
   g.gain.exponentialRampToValueAtTime(0.0001, start + dur)
   osc.connect(g)
   g.connect(dest ?? c.destination)
@@ -97,7 +129,7 @@ function noiseBurst(
   filter.type = 'highpass'
   filter.frequency.value = 2000
   g.gain.setValueAtTime(0.0001, start)
-  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainPeak), start + 0.005)
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, effectiveGain(gainPeak)), start + 0.005)
   g.gain.exponentialRampToValueAtTime(0.0001, start + dur)
   src.connect(filter)
   filter.connect(g)
@@ -133,7 +165,7 @@ export function playRevealSfx(tier: SfxRarity): void {
   void c.resume()
   const t = c.currentTime
   const master = c.createGain()
-  master.gain.value = 0.55
+  master.gain.value = 0.55 * volume
   master.connect(c.destination)
 
   switch (tier) {

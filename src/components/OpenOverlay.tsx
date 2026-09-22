@@ -1,5 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
 import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
 import type { Crate, OpenedSkin } from '../types'
 import {
   buildRouletteStrip,
@@ -8,11 +16,16 @@ import {
   TIER_META,
 } from '../lib/odds'
 import {
+  getSfxVolume,
+  isSfxMuted,
   playRevealSfx,
   playSpinTick,
   rarityToSfxTier,
   resumeAudio,
+  setSfxMuted,
+  setSfxVolume,
 } from '../lib/sfx'
+import { loadPrefs, prefersReducedMotion, savePrefs } from '../lib/prefs'
 import { ResultCard } from './ResultCard'
 
 const ITEM_W = 170
@@ -21,8 +34,8 @@ const SLOT = ITEM_W + GAP
 const CARD_H = 190
 const WINNER_INDEX = 42
 const STRIP_LEN = 50
-const REVEAL_MS = 1100
-const EASING = 'cubic-bezier(0.12, 0.75, 0.08, 1)'
+const REVEAL_MS = 900
+const REVEAL_MS_SHORT = 350
 
 interface Props {
   caseData: Crate
@@ -35,6 +48,11 @@ interface Props {
 }
 
 type UiPhase = 'spin' | 'reveal' | 'results'
+
+function easeOutQuint(t: number): number {
+  const x = Math.min(1, Math.max(0, t))
+  return 1 - Math.pow(1 - x, 5)
+}
 
 function isGoldTier(skin: OpenedSkin): boolean {
   if (skin.isRareSpecial) return true
@@ -75,6 +93,9 @@ export function OpenOverlay({
   const [cinematic, setCinematic] = useState(false)
   const [shake, setShake] = useState(false)
   const [confetti, setConfetti] = useState(false)
+  const [shortAnim, setShortAnim] = useState(() => loadPrefs().shortAnim)
+  const [muted, setMuted] = useState(() => isSfxMuted())
+  const [volume, setVolume] = useState(() => getSfxVolume())
 
   const viewportRef = useRef<HTMLDivElement>(null)
   const onDoneRef = useRef(onDone)
@@ -83,20 +104,23 @@ export function OpenOverlay({
   const targetRef = useRef(0)
   const spinTokenRef = useRef(0)
   const timersRef = useRef<number[]>([])
-  const rafRef = useRef<number[]>([])
+  const rafRef = useRef<number | null>(null)
   const winnersLenRef = useRef(winners.length)
   winnersLenRef.current = winners.length
   const lastTickSlot = useRef(-1)
+  const spinStartRef = useRef(0)
+  const spinDurationRef = useRef(4500)
+  const reducedRef = useRef(prefersReducedMotion())
+  const shortAnimRef = useRef(shortAnim)
+  shortAnimRef.current = shortAnim
+  const landRef = useRef<(fromIndex: number) => void>(() => {})
 
   const winner = winners[current]!
   const isMulti = winners.length > 1
-  const spinDurationMs = isMulti ? 3200 : 4500
-  const spinDurationRef = useRef(spinDurationMs)
-  spinDurationRef.current = spinDurationMs
 
   const strip = useMemo(
     () => buildRouletteStrip(caseData, winner, STRIP_LEN, WINNER_INDEX),
-    // rebuild per winner spin
+    // rebuild per winner spin — winner.uid is the single source of truth
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [caseData, winner.uid],
   )
@@ -104,8 +128,10 @@ export function OpenOverlay({
   const clearTimers = () => {
     for (const id of timersRef.current) window.clearTimeout(id)
     timersRef.current = []
-    for (const id of rafRef.current) cancelAnimationFrame(id)
-    rafRef.current = []
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
   }
 
   const schedule = (fn: () => void, ms: number) => {
@@ -114,14 +140,15 @@ export function OpenOverlay({
     return id
   }
 
-  const computeTarget = () => {
+  const computeTarget = useCallback(() => {
     const viewport = viewportRef.current
     const vw = viewport?.clientWidth ?? window.innerWidth
-    const jitter = Math.random() * 40 - 20
+    // Small jitter so the marker isn't always dead-center of the card
+    const jitter = Math.random() * 28 - 14
     return WINNER_INDEX * SLOT - vw / 2 + ITEM_W / 2 + jitter
-  }
+  }, [])
 
-  const afterReveal = (fromIndex: number) => {
+  const afterReveal = useCallback((fromIndex: number) => {
     setCinematic(false)
     setShake(false)
     setConfetti(false)
@@ -134,100 +161,168 @@ export function OpenOverlay({
       setSpinning(false)
       setUiPhase('results')
     }
-  }
+  }, [])
 
-  const landOnWinner = (fromIndex: number) => {
-    setSpinning(false)
-    setOffset(targetRef.current)
-    setUiPhase('reveal')
-    setCinematic(true)
+  const landOnWinner = useCallback(
+    (fromIndex: number) => {
+      setSpinning(false)
+      setOffset(targetRef.current)
+      setUiPhase('reveal')
+      setCinematic(true)
 
-    const skin = winners[fromIndex]!
-    const tier = rarityToSfxTier(
-      skin.item.rarity.name,
-      skin.item.rarity.id,
-      skin.isRareSpecial,
-    )
-    playRevealSfx(tier)
+      const skin = winners[fromIndex]!
+      const tier = rarityToSfxTier(
+        skin.item.rarity.name,
+        skin.item.rarity.id,
+        skin.isRareSpecial,
+      )
+      playRevealSfx(tier)
 
-    if (isCovertPlus(skin)) setConfetti(true)
-    if (isGoldTier(skin)) setShake(true)
+      if (isCovertPlus(skin)) setConfetti(true)
+      if (isGoldTier(skin)) setShake(true)
 
-    schedule(() => {
+      const revealMs =
+        reducedRef.current || shortAnimRef.current ? REVEAL_MS_SHORT : REVEAL_MS
+
+      schedule(() => {
+        setCinematic(false)
+        setShake(false)
+      }, Math.min(700, revealMs))
+      schedule(() => afterReveal(fromIndex), revealMs)
+    },
+    [afterReveal, winners],
+  )
+  landRef.current = landOnWinner
+
+  const runSpin = useCallback(
+    (fromIndex: number, token: number) => {
+      clearTimers()
+      lastTickSlot.current = -1
+      setUiPhase('spin')
+      setOffset(0)
+      setSpinning(false)
       setCinematic(false)
       setShake(false)
-    }, 700)
-    schedule(() => afterReveal(fromIndex), REVEAL_MS)
-  }
+      setConfetti(false)
 
-  // Resume audio on mount (user already clicked open on CasePage)
+      const reduced = prefersReducedMotion()
+      reducedRef.current = reduced
+      const short = shortAnimRef.current
+      const isMultiOpen = winnersLenRef.current > 1
+      const duration = reduced
+        ? 0
+        : short
+          ? isMultiOpen
+            ? 900
+            : 1200
+          : isMultiOpen
+            ? 3200
+            : 4500
+      spinDurationRef.current = duration
+
+      // Measure after layout
+      const startFrame = () => {
+        if (spinTokenRef.current !== token) return
+        const target = computeTarget()
+        targetRef.current = target
+
+        if (duration === 0) {
+          setOffset(target)
+          landRef.current(fromIndex)
+          return
+        }
+
+        setSpinning(true)
+        spinStartRef.current = performance.now()
+
+        const tick = (now: number) => {
+          if (spinTokenRef.current !== token) return
+          const elapsed = now - spinStartRef.current
+          const p = Math.min(1, elapsed / duration)
+          const eased = easeOutQuint(p)
+          const pos = eased * target
+          setOffset(pos)
+
+          const slot = Math.floor(eased * WINNER_INDEX)
+          if (slot !== lastTickSlot.current && slot < WINNER_INDEX) {
+            lastTickSlot.current = slot
+            playSpinTick(0.05 * (1 - p * 0.7))
+          }
+
+          if (p < 1) {
+            rafRef.current = requestAnimationFrame(tick)
+          } else {
+            rafRef.current = null
+            setOffset(target)
+            landRef.current(fromIndex)
+          }
+        }
+        rafRef.current = requestAnimationFrame(tick)
+      }
+
+      // Double-rAF so viewport has measured width
+      const r0 = requestAnimationFrame(() => {
+        const r1 = requestAnimationFrame(startFrame)
+        // track as timer-like cleanup via cancel in clearTimers for main spin only;
+        // these two are short-lived
+        void r1
+      })
+      void r0
+    },
+    [computeTarget],
+  )
+
+  // Resume audio on mount
   useEffect(() => {
     void resumeAudio()
   }, [])
 
-  // Only re-run when the active winner changes — never when onDone identity changes.
+  // Spin when active winner changes
   useEffect(() => {
-    clearTimers()
     const token = ++spinTokenRef.current
-    const fromIndex = current
-    lastTickSlot.current = -1
-
-    setUiPhase('spin')
-    setOffset(0)
-    setSpinning(false)
-    setCinematic(false)
-    setShake(false)
-    setConfetti(false)
-
-    const raf0 = requestAnimationFrame(() => {
-      if (spinTokenRef.current !== token) return
-      const target = computeTarget()
-      targetRef.current = target
-
-      const raf1 = requestAnimationFrame(() => {
-        const raf2 = requestAnimationFrame(() => {
-          if (spinTokenRef.current !== token) return
-          setSpinning(true)
-          setOffset(target)
-        })
-        rafRef.current.push(raf2)
-      })
-      rafRef.current.push(raf1)
-    })
-    rafRef.current.push(raf0)
-
-    schedule(() => {
-      if (spinTokenRef.current !== token) return
-      landOnWinner(fromIndex)
-    }, spinDurationRef.current)
-
+    runSpin(current, token)
     return () => {
       clearTimers()
+      spinTokenRef.current += 1
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [winner.uid, current])
 
-  // Light tick SFX while spinning (approx once per slot crossed)
+  // Finish spin immediately if tab was backgrounded (avoid desync)
   useEffect(() => {
-    if (!spinning || uiPhase !== 'spin') return
-    const start = performance.now()
-    const duration = spinDurationRef.current
-    let raf = 0
-    const tick = (now: number) => {
-      const p = Math.min(1, (now - start) / duration)
-      // ease-out approx matching cubic-bezier
-      const eased = 1 - Math.pow(1 - p, 3)
-      const slot = Math.floor(eased * WINNER_INDEX)
-      if (slot !== lastTickSlot.current && slot < WINNER_INDEX) {
-        lastTickSlot.current = slot
-        // quieter toward the end
-        playSpinTick(0.05 * (1 - p * 0.7))
+    const onVis = () => {
+      if (document.visibilityState !== 'hidden') return
+      if (uiPhase !== 'spin' || !spinning) return
+      // Jump to end of current spin so reveal stays in sync
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
       }
-      if (p < 1) raf = requestAnimationFrame(tick)
+      setOffset(targetRef.current)
+      setSpinning(false)
+      landRef.current(current)
     }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [spinning, uiPhase, winner.uid])
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [uiPhase, spinning, current])
+
+  // Recenter target on resize if still spinning (keep progress ratio)
+  useEffect(() => {
+    const onResize = () => {
+      if (uiPhase !== 'spin') return
+      const viewport = viewportRef.current
+      const vw = viewport?.clientWidth ?? window.innerWidth
+      // Preserve relative progress: recompute target without new jitter
+      const newTarget = WINNER_INDEX * SLOT - vw / 2 + ITEM_W / 2
+      const oldTarget = targetRef.current || 1
+      const ratio = offset / oldTarget
+      targetRef.current = newTarget
+      if (!spinning) setOffset(newTarget)
+      else setOffset(Math.min(newTarget, ratio * newTarget))
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [uiPhase, spinning, offset])
 
   useEffect(() => {
     const prevBody = document.body.style.overflow
@@ -267,7 +362,6 @@ export function OpenOverlay({
     setShake(false)
     setConfetti(false)
     setOffset(targetRef.current || 0)
-    // Multi: abort queue → final results. Single: same (show all results).
     setUiPhase('results')
   }
 
@@ -282,21 +376,37 @@ export function OpenOverlay({
     onReopenOne?.()
   }
 
+  const toggleShort = () => {
+    const next = !shortAnim
+    setShortAnim(next)
+    shortAnimRef.current = next
+    savePrefs({ shortAnim: next })
+  }
+
+  const toggleMute = () => {
+    const next = !muted
+    setSfxMuted(next)
+    setMuted(next)
+    if (!next) void resumeAudio()
+  }
+
+  const onVolumeChange = (v: number) => {
+    setSfxVolume(v)
+    setVolume(v)
+    if (v > 0 && muted) {
+      setSfxMuted(false)
+      setMuted(false)
+    }
+  }
+
   const color = rarityColor(winner)
   const punch = uiPhase === 'reveal'
 
   const overlay = (
     <div
-      className={`fixed inset-0 z-[100] flex flex-col bg-[#05070b] ${
+      className={`fixed inset-0 z-[100] flex flex-col bg-[#05070b] safe-overlay ${
         shake ? 'sfx-shake' : ''
       }`}
-      style={{
-        height: '100dvh',
-        maxHeight: '100dvh',
-        width: '100%',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        paddingTop: 'env(safe-area-inset-top, 0px)',
-      }}
       role="dialog"
       aria-modal="true"
       aria-label="Ouverture de caisse"
@@ -304,17 +414,16 @@ export function OpenOverlay({
       {cinematic && (
         <div
           className="pointer-events-none absolute inset-0 z-30 sfx-flash"
-          style={
-            {
-              '--sfx-color': color,
-            } as CSSProperties
-          }
+          style={{ '--sfx-color': color } as CSSProperties}
           aria-hidden
         />
       )}
 
       {confetti && uiPhase === 'reveal' && (
-        <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden" aria-hidden>
+        <div
+          className="pointer-events-none absolute inset-0 z-30 overflow-hidden"
+          aria-hidden
+        >
           {Array.from({ length: 28 }).map((_, i) => (
             <span
               key={i}
@@ -341,7 +450,7 @@ export function OpenOverlay({
       />
 
       <div className="relative z-10 flex flex-col flex-1 min-h-0 pointer-events-none">
-        <div className="pointer-events-auto shrink-0 px-4 pt-4 pb-2 sm:px-8 flex items-start justify-between gap-3">
+        <div className="pointer-events-auto shrink-0 px-3 pt-3 pb-2 sm:px-8 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-wide text-accent truncate">
               {caseData.name}
@@ -357,20 +466,57 @@ export function OpenOverlay({
               </p>
             )}
           </div>
-          {uiPhase !== 'results' && (
+          <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+            <label
+              className="inline-flex items-center gap-1.5 text-[11px] text-muted min-h-11"
+              title="Animation courte"
+            >
+              <input
+                type="checkbox"
+                checked={shortAnim}
+                onChange={toggleShort}
+                className="rounded border-border"
+              />
+              Anim. courte
+            </label>
             <button
               type="button"
-              onClick={handleSkip}
-              className="shrink-0 rounded-lg border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/20 transition"
-              title={
-                isMulti
-                  ? 'Passer les animations restantes et voir tous les résultats'
-                  : 'Passer l’animation'
-              }
+              onClick={toggleMute}
+              className="btn btn-ghost btn-sm min-h-11 px-3"
+              aria-pressed={!muted}
+              title={muted ? 'Activer le son' : 'Couper le son'}
             >
-              Passer
+              Son {muted ? 'OFF' : 'ON'}
             </button>
-          )}
+            {!muted && (
+              <label className="hidden md:inline-flex items-center gap-1.5 text-[11px] text-muted">
+                <span className="sr-only">Volume</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={volume}
+                  onChange={(e) => onVolumeChange(Number(e.target.value))}
+                  className="w-20 accent-[var(--color-accent)]"
+                />
+              </label>
+            )}
+            {uiPhase !== 'results' && (
+              <button
+                type="button"
+                onClick={handleSkip}
+                className="btn btn-secondary btn-sm min-h-11"
+                title={
+                  isMulti
+                    ? 'Passer les animations restantes et voir tous les résultats'
+                    : 'Passer l’animation'
+                }
+              >
+                Passer
+              </button>
+            )}
+          </div>
         </div>
 
         {uiPhase !== 'results' ? (
@@ -408,10 +554,7 @@ export function OpenOverlay({
                 className="absolute top-0 left-0 flex items-center h-full will-change-transform px-1"
                 style={{
                   gap: GAP,
-                  transform: `translateX(-${offset}px)`,
-                  transition: spinning
-                    ? `transform ${spinDurationMs}ms ${EASING}`
-                    : 'none',
+                  transform: `translate3d(-${offset}px, 0, 0)`,
                 }}
               >
                 {strip.map((slot, i) => {
@@ -496,7 +639,7 @@ export function OpenOverlay({
             onKeyDown={(e) => e.stopPropagation()}
             role="presentation"
           >
-            <h2 className="text-xl font-bold mb-4 text-center sm:text-left">
+            <h2 className="text-xl font-bold mb-4 text-center sm:text-left title-display">
               Résultat{winners.length > 1 ? 's' : ''}
             </h2>
             <div className="grid gap-3 max-w-3xl mx-auto sm:mx-0">
@@ -513,17 +656,31 @@ export function OpenOverlay({
               <button
                 type="button"
                 onClick={handleReopen}
-                className="rounded-lg border border-accent/60 bg-accent/10 text-accent font-semibold px-4 py-2.5 text-sm hover:bg-accent/20 transition"
+                className="btn btn-secondary"
               >
                 Rouvrir ×1
               </button>
             )}
+            <Link
+              to="/inventory"
+              onClick={confirmClose}
+              className="btn btn-ghost"
+            >
+              Inventaire
+            </Link>
+            <Link
+              to="/caisses"
+              onClick={confirmClose}
+              className="btn btn-ghost"
+            >
+              Catalogue
+            </Link>
             <button
               type="button"
               onClick={confirmClose}
-              className="rounded-lg bg-accent text-bg font-bold px-5 py-2.5 text-sm hover:brightness-110 transition shadow-lg shadow-accent/20"
+              className="btn btn-primary"
             >
-              Ajouter à l&apos;inventaire &amp; fermer
+              Ajouter &amp; fermer
             </button>
           </div>
         )}

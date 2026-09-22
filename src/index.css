@@ -2,32 +2,54 @@
 
 @theme {
   --color-bg: #0b0e13;
+  --color-bg-elevated: #0f1319;
   --color-panel: #12171f;
   --color-panel-2: #1a2130;
+  --color-panel-3: #222b3a;
   --color-border: #2a3444;
+  --color-border-strong: #3a4658;
   --color-accent: #d4a017;
+  --color-accent-soft: #e8b84a;
+  --color-accent-dim: #a67c12;
   --color-text: #e8edf5;
   --color-muted: #8b97a8;
+  --color-danger: #eb4b4b;
+  --color-success: #3dd68c;
   --color-milspec: #4b69ff;
   --color-restricted: #8847ff;
   --color-classified: #d32ce6;
   --color-covert: #eb4b4b;
   --color-rare: #ffd700;
+  --font-display: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --shadow-glow-accent: 0 0 24px color-mix(in srgb, #d4a017 35%, transparent);
+  --radius-card: 0.75rem;
+  --radius-btn: 0.625rem;
 }
 
 html, body, #root {
   min-height: 100%;
+  min-height: 100dvh;
 }
 
 body {
   margin: 0;
-  background: radial-gradient(ellipse at top, #151b26 0%, var(--color-bg) 55%);
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -20%, #1a2230 0%, transparent 55%),
+    radial-gradient(ellipse at top, #151b26 0%, var(--color-bg) 55%);
+  background-attachment: fixed;
   color: var(--color-text);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 * {
   box-sizing: border-box;
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 80%, white);
+  outline-offset: 2px;
 }
 
 ::-webkit-scrollbar {
@@ -37,6 +59,175 @@ body {
 ::-webkit-scrollbar-thumb {
   background: #2a3444;
   border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---- Design system utilities ---- */
+.surface {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+.surface-elevated {
+  background: var(--color-panel-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+.surface-inset {
+  background: #0a0d12;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--radius-btn);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  transition: background 0.15s ease, border-color 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.btn-primary {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 700;
+  box-shadow: var(--shadow-glow-accent);
+}
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.btn-secondary {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  color: var(--color-accent);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
+.btn-ghost {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.btn-ghost:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  color: var(--color-accent);
+}
+.btn-danger {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
+  color: var(--color-danger);
+}
+.btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-danger) 22%, transparent);
+}
+.btn-sm {
+  min-height: 36px;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+}
+.btn-lg {
+  min-height: 48px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9375rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 32px;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  background: var(--color-panel);
+  color: var(--color-muted);
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  cursor: pointer;
+}
+.chip:hover {
+  color: var(--color-text);
+  border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+.chip-active {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.input-field {
+  width: 100%;
+  min-height: 44px;
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--color-border);
+  background: var(--color-panel-2);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-field::placeholder {
+  color: var(--color-muted);
+}
+.input-field:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+
+.card {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border);
+  background: var(--color-panel);
+  overflow: hidden;
+  transition: border-color 0.2s, background 0.2s;
+}
+.card:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+.title-display {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+.title-section {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.body-muted {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.safe-overlay {
+  height: 100dvh;
+  max-height: 100dvh;
+  width: 100%;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 /* ---- Opening cinematic (SFX / reveal) ---- */
@@ -87,7 +278,6 @@ body {
   opacity: 0.9;
 }
 
-/* ---- Landing / auth ambiance ---- */
 @keyframes float-y {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
@@ -100,4 +290,16 @@ body {
 }
 .animate-float-fast {
   animation: float-y 4.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-slow,
+  .animate-float-med,
+  .animate-float-fast,
+  .sfx-flash,
+  .sfx-punch,
+  .sfx-shake,
+  .sfx-confetti {
+    animation: none !important;
+  }
 }

@@ -7,15 +7,14 @@ export function CaseCard({
   contentMatch,
 }: {
   c: CrateIndexEntry
-  /** When search matched via a skin inside the case */
   contentMatch?: string | null
 }) {
   return (
     <Link
       to={`/case/${encodeURIComponent(c.id)}`}
-      className="group flex flex-col rounded-xl border border-border bg-panel hover:border-accent/50 hover:bg-panel-2 transition overflow-hidden shadow-lg shadow-black/20"
+      className="group card flex flex-col hover:bg-panel-2 shadow-lg shadow-black/20 focus-visible:ring-2 focus-visible:ring-accent/50"
     >
-      <div className="aspect-[4/3] flex items-center justify-center bg-gradient-to-b from-[#1c2433] to-[#0e1218] p-4">
+      <div className="aspect-[4/3] flex items-center justify-center bg-gradient-to-b from-[#1c2433] to-[#0e1218] p-3 sm:p-5">
         <img
           src={c.image}
           alt={c.name}
@@ -24,7 +23,7 @@ export function CaseCard({
         />
       </div>
       <div className="px-3 py-3 border-t border-border">
-        <p className="text-[10px] uppercase tracking-wide text-accent/80 mb-0.5">
+        <p className="text-[10px] uppercase tracking-wide text-accent/80 mb-0.5 font-semibold">
           {typeLabel(c.type)}
         </p>
         <h2 className="text-sm font-semibold text-text line-clamp-2 group-hover:text-accent transition-colors">

@@ -14,7 +14,7 @@ export function ResultCard({ skin, onInspect }: Props) {
     <button
       type="button"
       onClick={() => onInspect?.(skin)}
-      className="w-full text-left rounded-xl border bg-panel overflow-hidden hover:brightness-110 transition"
+      className="w-full text-left rounded-xl border bg-panel overflow-hidden hover:brightness-110 transition focus-visible:ring-2 focus-visible:ring-accent/50"
       style={{ borderColor: color, boxShadow: `0 0 24px ${color}33` }}
       title={onInspect ? 'Inspecter' : undefined}
     >
